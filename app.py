@@ -24,14 +24,9 @@ footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# ---- HEADER CON LOGO ----
-col_logo, col_title = st.columns([1, 6])
-with col_logo:
-    st.image("logo.png", width=70)  # Logo local
-with col_title:
-    st.markdown("<h1>Registro de Exceso de Velocidad</h1>", unsafe_allow_html=True)
-    st.markdown("**Proyecto Vicuña - Seguridad Patrimonial**", unsafe_allow_html=True)
-
+# ---- HEADER ----
+st.markdown("<h1>Registro de Exceso de Velocidad</h1>", unsafe_allow_html=True)
+st.markdown("**Proyecto Vicuña - Seguridad Patrimonial**", unsafe_allow_html=True)
 st.markdown("")
 
 # ---- FORMULARIO ----
@@ -59,8 +54,7 @@ if submit:
         pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
 
-        # Encabezado logo + título
-        pdf.image("logo.png", x=10, y=8, w=25)
+        # Título centrado
         pdf.set_font("Arial", "B", 16)
         pdf.cell(0, 10, "Informe de Exceso de Velocidad", ln=True, align="C")
         pdf.ln(5)
