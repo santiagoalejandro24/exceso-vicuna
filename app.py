@@ -1,81 +1,96 @@
 import streamlit as st
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
-import io
+from fpdf import FPDF
+import datetime
 
-st.set_page_config(page_title="Reporte Vicuña", layout="centered")
+# Configuración inicial
+st.set_page_config(page_title="Control de Exceso - Proyecto Vicuña", layout="centered")
 
-st.markdown(
-    """
+# Tema oscuro con CSS
+st.markdown("""
     <style>
-    body {
-        background-color: #1e1e1e;
-        color: white;
-    }
+        body {
+            background-color: #0E1117;
+            color: #FAFAFA;
+        }
+        .stApp {
+            background-color: #0E1117;
+            color: #FAFAFA;
+        }
+        h1, h2, h3, h4, h5, h6, label, p {
+            color: #FAFAFA !important;
+        }
+        .css-1d391kg {
+            background-color: #1E1E1E !important;
+        }
     </style>
-    """,
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
-st.title("📋 Control Diario - Proyecto Vicuña")
+st.title("📋 Control de Exceso - Proyecto Vicuña")
 
-# --- Datos del formulario ---
-chofer = st.text_input("Nombre del Chofer")
-vehiculo = st.text_input("Vehículo")
-fecha = st.date_input("Fecha")
-hora = st.time_input("Hora")
+# Formulario
+with st.form("control_form"):
+    fecha = st.date_input("📅 Fecha", datetime.date.today())
+    hora = st.time_input("⏰ Hora")
+    empresa = st.text_input("🏢 Empresa")
+    sector = st.text_input("📍 Sector")
+    conductor = st.text_input("👷 Conductor")
+    dni = st.text_input("🪪 DNI")
+    patente = st.text_input("🚗 Patente Vehículo")
+    observaciones = st.text_area("📝 Observaciones")
 
-if st.button("Generar PDF"):
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
-    elements = []
-    styles = getSampleStyleSheet()
+    submitted = st.form_submit_button("✅ Generar Reporte")
 
-    # --- Título ---
-    title = Paragraph("<b>REPORTE DE CONTROL - PROYECTO VICUÑA</b>", styles['Title'])
-    elements.append(title)
-    elements.append(Spacer(1, 20))
+# Generar PDF profesional
+if submitted:
+    pdf = FPDF("P", "mm", "A4")
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
 
-    # --- Datos principales en tabla ---
-    data = [
-        ["Fecha", str(fecha)],
-        ["Hora", str(hora)],
-        ["Chofer", chofer],
-        ["Vehículo", vehiculo],
-    ]
+    # Encabezado
+    pdf.set_font("Arial", "B", 14)
+    pdf.set_fill_color(40, 40, 40)
+    pdf.set_text_color(255, 255, 255)
+    pdf.cell(0, 12, "CONTROL DE EXCESO - PROYECTO VICUÑA", ln=True, align="C", fill=True)
 
-    table = Table(data, colWidths=[100, 350])
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#4A90E2")),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 11),
-        ('BOTTOMPADDING', (0,0), (-1,0), 8),
-        ('BACKGROUND', (0,1), (-1,-1), colors.whitesmoke),
-        ('GRID', (0,0), (-1,-1), 0.8, colors.grey),
-    ]))
-    elements.append(table)
-    elements.append(Spacer(1, 20))
+    pdf.ln(10)
 
-    # --- Observaciones ---
-    obs = Paragraph("<b>Observaciones:</b> ____________________________", styles['Normal'])
-    elements.append(obs)
+    # Tabla de datos principales
+    pdf.set_font("Arial", "B", 12)
+    pdf.set_text_color(0, 0, 0)
 
-    # --- Firma ---
-    firma = Paragraph("<br/><br/><b>Firma Responsable: _____________________</b>", styles['Normal'])
-    elements.append(firma)
+    def add_row(label, value):
+        pdf.set_font("Arial", "B", 11)
+        pdf.cell(50, 10, label, border=1, align="L")
+        pdf.set_font("Arial", "", 11)
+        pdf.cell(0, 10, str(value), border=1, ln=True, align="L")
 
-    # Construir PDF
-    doc.build(elements)
-    pdf = buffer.getvalue()
-    buffer.close()
+    add_row("Fecha", fecha)
+    add_row("Hora", hora.strftime("%H:%M"))
+    add_row("Empresa", empresa)
+    add_row("Sector", sector)
+    add_row("Conductor", conductor)
+    add_row("DNI", dni)
+    add_row("Patente", patente)
 
-    st.download_button(
-        label="📥 Descargar Reporte PDF",
-        data=pdf,
-        file_name="reporte_vicuna.pdf",
-        mime="application/pdf",
-    )
+    # Observaciones en cuadro aparte
+    pdf.ln(5)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, "Observaciones:", ln=True)
+    pdf.set_font("Arial", "", 11)
+    pdf.multi_cell(0, 10, observaciones, border=1)
+
+    # Cuadro final fijo
+    pdf.ln(10)
+    pdf.set_font("Arial", "B", 12)
+    pdf.set_fill_color(230, 230, 230)
+    pdf.cell(0, 10, "Checklist del Vehículo", ln=True, align="C", fill=True)
+
+    pdf.set_font("Arial", "", 11)
+    pdf.cell(0, 10, "ANTIESTALLIDO: SI | OXÍGENO: SI | COMBUSTIBLE: SI | RADIO: S/N", ln=True, align="C", border=1)
+
+    # Guardar PDF
+    pdf_output = "control_exceso.pdf"
+    pdf.output(pdf_output)
+
+    with open(pdf_output, "rb") as f:
+        st.download_button("📥 Descargar Reporte en PDF", f, file_name=pdf_output)
