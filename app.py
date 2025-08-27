@@ -90,7 +90,7 @@ with st.form("exceso_form"):
         foto = st.file_uploader("📷 Registro fotográfico (opcional)", type=["jpg", "jpeg", "png"])
         submit = st.form_submit_button("✅ Generar Informe PDF")
 
-# ---- LÓGICA DEL PDF ----
+# ---- LÓGICA DEL PDF PROFESIONAL ----
 if submit:
     if not chofer or not dni or not empresa or not dominio:
         st.error("⚠️ Complete los campos obligatorios: nombre del chofer, DNI, empresa y dominio.")
@@ -98,31 +98,52 @@ if submit:
         pdf = FPDF(orientation='P', unit='mm', format='A4')
         pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
-        pdf.set_font("Arial", "B", 14)
-        pdf.cell(0, 10, "Informe de Exceso de Velocidad - Proyecto Vicuña", ln=True, align="C")
-        pdf.ln(6)
-        pdf.set_font("Arial", size=12)
 
-        pdf.multi_cell(0, 7, "Señores\nSeguridad Patrimonial\nProyecto Vicuña\nS_/_D\n")
+        # ---- ENCABEZADO LOGO + TÍTULO ----
+        logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Warning_icon.svg/240px-Warning_icon.svg.png"
+        logo_path = "logo_temp.png"
+        if foto:
+            # solo para usar el mismo directorio
+            pass
+        import requests
+        r = requests.get(logo_url)
+        with open(logo_path, "wb") as f:
+            f.write(r.content)
+        pdf.image(logo_path, x=10, y=8, w=25)
+        pdf.set_font("Arial", "B", 16)
+        pdf.cell(0, 10, "Informe de Exceso de Velocidad", ln=True, align="C")
+        pdf.ln(5)
+        pdf.set_font("Arial", "", 12)
+        pdf.cell(0, 6, "Proyecto Vicuña - Seguridad Patrimonial", ln=True, align="C")
+        pdf.ln(5)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(5)
+
+        # ---- TABLA DE DATOS ----
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(50, 6, "Campo", 1, 0, "C")
+        pdf.cell(0, 6, "Detalle", 1, 1, "C")
+
+        pdf.set_font("Arial", "", 12)
+        data = [
+            ("Hora del incidente", hora.strftime('%H:%M')),
+            ("Chofer", chofer),
+            ("DNI", dni),
+            ("Empresa", empresa),
+            ("Sector", sector),
+            ("Zona límite (km/h)", str(limite)),
+            ("Velocidad registrada (km/h)", str(velocidad)),
+            ("Dominio vehículo", dominio)
+        ]
+        for field, value in data:
+            pdf.cell(50, 6, field, 1, 0)
+            pdf.cell(0, 6, value, 1, 1)
+
+        pdf.ln(5)
+        pdf.multi_cell(0, 6, "Se adjunta registro fotográfico.", 0, 1)
         pdf.ln(2)
 
-        texto = f"""Para informar, exceso de velocidad:
-
-* Siendo las {hora.strftime('%H:%M')}Hs
-- Chofer Sr. {chofer} (DNI: {dni}).
-- Empresa {empresa} para Proyecto Vicuña.
-- Sector {sector}.
-- Zona de {limite} km/h.
-- Exceso de velocidad de {velocidad} km/h.
-- Camioneta dominio: {dominio}.
-
-Se remite a Staff de Seguridad Patrimonial.
-"""
-        pdf.multi_cell(0, 7, texto)
-        pdf.ln(3)
-        pdf.multi_cell(0, 7, "Se adjunta registro fotográfico.")
-        pdf.ln(3)
-
+        # ---- FOTO CENTRADA ----
         temp_path = None
         try:
             if foto:
@@ -131,26 +152,26 @@ Se remite a Staff de Seguridad Patrimonial.
                     f.write(foto.getbuffer())
 
                 img = Image.open(temp_path)
-                max_pixel_width = 2000
+                max_pixel_width = 1600
                 if img.width > max_pixel_width:
                     ratio = max_pixel_width / img.width
                     new_h = int(img.height * ratio)
                     img = img.resize((max_pixel_width, new_h), Image.LANCZOS)
                     img.save(temp_path)
 
-                y_pos = pdf.get_y()
-                page_height = 297
-                bottom_margin = 15
-                safety_image_height_estimate = 60
-                if y_pos + safety_image_height_estimate > (page_height - bottom_margin):
-                    pdf.add_page()
-
-                pdf.ln(2)
-                left_margin = 10
-                usable_width = 210 - 2 * left_margin
-                pdf.image(temp_path, x=left_margin, w=usable_width)
+                # Centrar imagen horizontalmente
+                pdf_w = 210
+                img_w_mm = 180
+                pdf.image(temp_path, x=(pdf_w - img_w_mm)/2, w=img_w_mm)
                 pdf.ln(5)
 
+            # ---- PIE DE PÁGINA ----
+            pdf.set_y(-25)
+            pdf.set_font("Arial", "I", 10)
+            fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+            pdf.cell(0, 5, f"Proyecto Vicuña | Seguridad Patrimonial | Generado: {fecha}", 0, 1, "C")
+
+            # ---- GUARDAR PDF ----
             file_name = f"Exceso_{dominio.replace(' ', '_')}.pdf"
             pdf.output(file_name)
 
@@ -164,10 +185,13 @@ Se remite a Staff de Seguridad Patrimonial.
             wa_url = f"https://wa.me/?text={urllib.parse.quote(mensaje)}"
             st.markdown(f'<a class="wa-btn" href="{wa_url}">📲 Enviar por WhatsApp</a>', unsafe_allow_html=True)
             st.success("✅ Informe generado con éxito.")
+
         finally:
             try:
                 if temp_path and os.path.exists(temp_path):
                     os.remove(temp_path)
+                if os.path.exists(logo_path):
+                    os.remove(logo_path)
             except Exception:
                 pass
 
