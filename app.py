@@ -9,12 +9,12 @@ import urllib.parse
 # ---- CONFIGURACIÓN DE PÁGINA ----
 st.set_page_config(page_title="Proyecto Vicuña - Registro de Excesos", layout="wide", page_icon="🚨")
 
-# ---- ESTILO CSS FINAL ----
+# ---- ESTILO CSS FINAL LEGIBLE ----
 st.markdown("""
 <style>
-/* Fondo degradado */
+/* Fondo general claro */
 .stApp {
-    background: linear-gradient(to bottom, #e6ebf2, #f4f6f9);
+    background-color: #f4f6f9;
     font-family: 'Arial', sans-serif;
 }
 
@@ -31,13 +31,20 @@ h1, h2, h3 {
     color: #1a3d7c;
 }
 
+/* Texto general */
+.stMarkdown, .stText {
+    color: #1a1a1a;
+}
+
 /* Estilo campos formulario */
 [data-baseweb="input"] input {
     border: 2px solid #1a3d7c !important;
     border-radius: 6px !important;
+    color: #000000 !important;
+    background-color: #ffffff !important;
 }
 
-/* Botones estilo corporativo */
+/* Botones corporativos */
 a.download-btn, a.wa-btn {
     background-color: #1a3d7c;
     color: white !important;
