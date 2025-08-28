@@ -55,27 +55,15 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
-    
-    # --- Encabezado ---
-    # Configurar el color verde
-    pdf.set_text_color(0, 128, 0)
-    
-    # Texto "HUARPE" - Tamaño de fuente 40
-    # Altura reducida para menor separación
-    pdf.set_font("Arial", "B", 40)
-    pdf.cell(0, 12, "HUARPE", 0, 1, 'C')
-    
-    # Texto "SEGURIDAD INTEGRAL" - Tamaño de fuente 24
-    # Altura reducida para menor separación
-    pdf.set_font("Arial", "", 24)
-    pdf.cell(0, 8, "SEGURIDAD INTEGRAL", 0, 1, 'C')
+    pdf.set_font("Arial", "", 10)
 
-    # Volver al color negro para el resto del documento
-    pdf.set_text_color(0, 0, 0)
-    pdf.ln(10)
+    # --- Encabezado ---
+    # Colocar la imagen del logo en el centro
+    logo = "logo.png"  # Asegúrate de tener este archivo en la misma carpeta
+    pdf.image(logo, x=10, y=10, w=20, h=20)
+    pdf.ln(20)
 
     # --- Detalles de la solicitud ---
-    pdf.set_font("Arial", "", 10)
     pdf.cell(40, 6, "Señores", 0, 1)
     pdf.cell(40, 6, "Seguridad Patrimonial", 0, 1)
     pdf.cell(40, 6, "Proyecto Vicuña", 0, 1)
@@ -84,52 +72,46 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
     pdf.cell(0, 6, "Para informar, exceso de velocidad:", 0, 1)
     pdf.ln(3)
 
-    # --- Tabla de datos ---
-    # Colores y fuentes para el nuevo diseño
+    # --- Tabla de datos original ---
     pdf.set_font("Arial", "B", 10)
-    pdf.set_fill_color(180, 180, 180) # Gris oscuro para el encabezado
-    pdf.set_text_color(0, 0, 0)
+    pdf.set_fill_color(220, 220, 220)
     
     # Encabezados de la tabla
-    # Sin bordes verticales, solo la línea inferior
-    pdf.cell(60, 8, "Hora del registro", 'B', 0, 'L', 1)
-    pdf.cell(0, 8, datos['hora'], 'B', 1, 'L', 0)
-    
-    # Filas con colores alternos para mejor legibilidad
+    pdf.cell(60, 8, "Hora del registro", 1, 0, 'L', 1)
     pdf.set_font("Arial", "", 10)
-    # Fila 1 (fondo blanco)
-    pdf.set_fill_color(255, 255, 255) 
-    pdf.cell(60, 8, "Chofer", 'B', 0, 'L', 1)
-    pdf.cell(0, 8, f"{datos['chofer']} (DNI: {datos['dni']})", 'B', 1, 'L', 0)
+    pdf.cell(0, 8, datos['hora'], 1, 1, 'L')
     
-    # Fila 2 (fondo gris claro)
-    pdf.set_fill_color(240, 240, 240)
-    pdf.cell(60, 8, "Empresa", 'B', 0, 'L', 1)
-    pdf.cell(0, 8, datos['empresa'], 'B', 1, 'L', 0)
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Chofer", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, f"{datos['chofer']} (DNI: {datos['dni']})", 1, 1, 'L')
     
-    # Fila 3 (fondo blanco)
-    pdf.set_fill_color(255, 255, 255) 
-    pdf.cell(60, 8, "Sector", 'B', 0, 'L', 1)
-    pdf.cell(0, 8, datos['sector'], 'B', 1, 'L', 0)
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Empresa", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, datos['empresa'], 1, 1, 'L')
     
-    # Fila 4 (fondo gris claro)
-    pdf.set_fill_color(240, 240, 240)
-    pdf.cell(60, 8, "Zona de velocidad", 'B', 0, 'L', 1)
-    pdf.cell(0, 8, f"{datos['zona']} km/h", 'B', 1, 'L', 0)
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Sector", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, datos['sector'], 1, 1, 'L')
     
-    # Fila 5 (fondo blanco)
-    pdf.set_fill_color(255, 255, 255) 
-    pdf.cell(60, 8, "Exceso de velocidad", 'B', 0, 'L', 1)
-    pdf.cell(0, 8, f"{datos['exceso']} km/h", 'B', 1, 'L', 0)
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Zona de velocidad", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, f"{datos['zona']} km/h", 1, 1, 'L')
     
-    # Fila 6 (fondo gris claro)
-    pdf.set_fill_color(240, 240, 240)
-    pdf.cell(60, 8, "Dominio del vehículo", 'B', 0, 'L', 1)
-    pdf.cell(0, 8, datos['patente'], 'B', 1, 'L', 0)
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Exceso de velocidad", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, f"{datos['exceso']} km/h", 1, 1, 'L')
+    
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Dominio del vehículo", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, datos['patente'], 1, 1, 'L')
     
     pdf.ln(10)
-
-    # --- Texto y Fotos ---
     pdf.set_font("Arial", "", 10)
     pdf.cell(0, 6, "Se remite a Staff de Seguridad Patrimonial.", 0, 1)
     pdf.cell(0, 6, "Se adjunta registro fotográfico.", 0, 1)
@@ -161,26 +143,17 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
 
     if firma_file:
         pdf.ln(10)
-        # Imprime el texto de la firma en el lado izquierdo
         pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 6, "Firma del guardia:", 0, 0, 'L')
-        
-        # Guarda las coordenadas X e Y actuales
-        x_start = pdf.get_x()
-        y_start = pdf.get_y()
-
+        pdf.cell(0, 6, "Firma del guardia:", ln=True)
         img = Image.open(firma_file)
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
             img.save(tmp_sig.name, format="PNG")
-            
-            # Dibuja la caja y la imagen en la misma línea
+            x_start = pdf.w - 15 - 60
+            y_start = pdf.get_y()
             pdf.rect(x_start - 2, y_start - 2, 60 + 4, 30 + 4)
             pdf.image(tmp_sig.name, x=x_start, y=y_start, w=60, h=30)
-            
+            pdf.ln(40)
             os.unlink(tmp_sig.name)
-        
-        # Avanza a la siguiente línea después de la imagen
-        pdf.ln(40)
 
     return pdf.output(dest='S').encode('latin1')
 
