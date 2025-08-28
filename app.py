@@ -1,7 +1,6 @@
 import streamlit as st
 from fpdf import FPDF
 from PIL import Image
-import io
 
 # ---- Configuración página ----
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
@@ -101,7 +100,7 @@ if enviar:
         pdf.ln(5)
         pdf.multi_cell(0, 10, "Se remite a Staff de Seguridad Patrimonial.\nSe adjunta registro fotográfico.")
 
-        # --- Fotos corporativas ---
+        # --- Fotos corporativas (hasta 3 por fila) ---
         if fotos:
             pdf.ln(5)
             cols = 3
@@ -144,11 +143,13 @@ if enviar:
                 st.image(foto, width=200)
 
         # --- Guardar PDF en memoria ---
-        pdf_bytes = io.BytesIO()
-        pdf.output(pdf_bytes)
-        pdf_bytes.seek(0)
+        pdf_bytes = pdf.output(dest='S').encode('latin1')
 
-        st.download_button("Descargar Reporte PDF", data=pdf_bytes.getvalue(),
-                           file_name="Reporte_Exceso-Vicuna_Corporativo.pdf", mime="application/pdf")
+        st.download_button(
+            "Descargar Reporte PDF",
+            data=pdf_bytes,
+            file_name="Reporte_Exceso-Vicuna_Corporativo.pdf",
+            mime="application/pdf"
+        )
 
         st.success("Reporte generado correctamente")
