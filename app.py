@@ -4,169 +4,131 @@ from PIL import Image
 import tempfile
 import os
 
-# ---- Configuración página ----
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
-
-# ---- Estilos CSS ----
-st.markdown("""
-<style>
-body { background-color: #0E1117; color: #FAFAFA; font-family: Arial, sans-serif; }
-.stTextInput>div>div>input, .stTextArea>div>div>textarea, .stNumberInput>div>input { 
-    background-color: #1E1E1E !important; color: white !important; 
-    border: 1px solid #444444 !important; border-radius: 5px !important; padding: 5px !important;
-}
-.stButton>button { background-color: #6200EE; color: white; border-radius: 8px; padding: 0.8em 1.5em; font-weight: bold;}
-.stButton>button:hover { background-color: #3700B3; color: white; }
-.stForm { background-color: #121212; padding: 20px; border-radius: 10px; }
-</style>
-""", unsafe_allow_html=True)
-
 st.title("Control de Exceso de Velocidad - Proyecto Vicuña")
 
-# ---- Formulario ----
-with st.form("formulario"):
-    st.markdown("### Complete los datos del registro")
-    hora = st.text_input("Hora del registro (ej: 09:52)")
-    chofer = st.text_input("Chofer (Nombre y Apellido)")
-    dni = st.text_input("DNI del chofer")
-    empresa = st.text_input("Empresa")
-    sector = st.text_input("Sector (ej: Km 170, La Majadita, etc.)")
-    zona = st.number_input("Zona de velocidad permitida (km/h)", min_value=0, max_value=200)
-    exceso = st.number_input("Exceso de velocidad registrado (km/h)", min_value=0, max_value=300)
-    patente = st.text_input("Dominio del vehículo")
-    observaciones = st.text_area("Observaciones adicionales (opcional)")
+# ---- Contenedor del formulario ----
+with st.container():
+    with st.form("formulario_reporte"):
+        st.markdown("### Complete los datos del registro")
+        hora = st.text_input("Hora del registro (ej: 09:52)")
+        chofer = st.text_input("Chofer (Nombre y Apellido)")
+        dni = st.text_input("DNI del chofer")
+        empresa = st.text_input("Empresa")
+        sector = st.text_input("Sector (ej: Km 170, La Majadita, etc.)")
+        zona = st.number_input("Zona de velocidad permitida (km/h)", min_value=0, max_value=200)
+        exceso = st.number_input("Exceso de velocidad registrado (km/h)", min_value=0, max_value=300)
+        patente = st.text_input("Dominio del vehículo")
+        observaciones = st.text_area("Observaciones adicionales (opcional)")
 
-    # ---- Subida de firma como imagen ----
-    st.markdown("### Firma del guardia (subir imagen .png o .jpg)")
-    firma = st.file_uploader("Subir imagen de firma", type=["png", "jpg", "jpeg"])
+        st.markdown("### Firma del guardia (subir imagen .png o .jpg)")
+        firma = st.file_uploader("Subir imagen de firma", type=["png", "jpg", "jpeg"])
 
-    fotos = st.file_uploader(
-        "Adjunte archivo(s) fotográfico(s) (máx. 30 MB cada uno)",
-        type=["jpg", "jpeg", "png"],
-        accept_multiple_files=True
-    )
+        fotos = st.file_uploader(
+            "Adjunte archivo(s) fotográfico(s) (máx. 30 MB cada uno)",
+            type=["jpg", "jpeg", "png"],
+            accept_multiple_files=True
+        )
 
-    if fotos:
-        fotos_validas = []
-        for foto in fotos:
-            if foto.size > 30 * 1024 * 1024:
-                st.warning(f"El archivo {foto.name} supera 30 MB y no será incluido.")
-            else:
-                fotos_validas.append(foto)
-        fotos = fotos_validas
+        enviar = st.form_submit_button("Generar PDF")
 
-    enviar = st.form_submit_button("Generar PDF")
+# ---- Vista previa de fotos y firma ----
+if fotos:
+    st.markdown("### Fotos subidas")
+    for foto in fotos:
+        st.image(foto, width=200)
 
-# ---- Generar PDF ----
+if firma:
+    st.markdown("### Firma subida")
+    st.image(firma, width=200)
+
+# ---- Generar PDF con indicador visual ----
 if enviar:
     campos_obligatorios = [hora, chofer, dni, empresa, sector, patente]
     if any(campo.strip() == "" for campo in campos_obligatorios):
         st.warning("Por favor, complete todos los campos obligatorios.")
     else:
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_auto_page_break(auto=True, margin=15)
+        with st.spinner("Generando PDF, por favor espere..."):
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_auto_page_break(auto=True, margin=15)
 
-        # --- Encabezado corporativo ---
-        pdf.set_font("Arial", "B", 28)
-        pdf.set_text_color(0, 128, 0)
-        pdf.cell(0, 12, "HUARPE SEGURIDAD", ln=True, align="C")
-        pdf.set_font("Arial", "B", 16)
-        pdf.cell(0, 10, "SEGURIDAD INTEGRAL", ln=True, align="C")
-        pdf.set_text_color(0, 0, 0)
-        pdf.cell(0, 8, "Patrulla Huarpe", ln=True, align="C")
-        pdf.ln(10)
-
-        # --- Encabezado tipo informe ---
-        pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 6, "Señores", ln=True)
-        pdf.cell(0, 6, "Seguridad Patrimonial", ln=True)
-        pdf.cell(0, 6, "Proyecto Vicuña", ln=True)
-        pdf.cell(0, 6, "S_/_D", ln=True)
-        pdf.ln(5)
-        pdf.set_font("Arial", "", 12)
-        pdf.cell(0, 10, "Para informar, exceso de velocidad:", ln=True)
-        pdf.ln(5)
-
-        # --- Tabla con colores suaves ---
-        pdf.set_font("Arial", "B", 12)
-        def add_row(label, value, fill=False):
-            pdf.set_font("Arial", "B", 11)
-            pdf.set_fill_color(245, 245, 245) if fill else pdf.set_fill_color(255, 255, 255)
-            pdf.cell(60, 10, label, border=1, fill=True)
-            pdf.set_font("Arial", "", 11)
-            pdf.cell(0, 10, str(value), border=1, ln=True, fill=True)
-
-        datos = [
-            ("Hora del registro", f"{hora}Hs"),
-            ("Chofer", f"{chofer} (DNI: {dni})"),
-            ("Empresa", empresa),
-            ("Sector", sector),
-            ("Zona de velocidad", f"{zona} km/h"),
-            ("Exceso de velocidad", f"{exceso} km/h"),
-            ("Dominio del vehículo", patente)
-        ]
-        if observaciones.strip() != "":
-            datos.append(("Observaciones adicionales", observaciones))
-
-        fill = False
-        for label, value in datos:
-            add_row(label, value, fill)
-            fill = not fill
-
-        pdf.ln(5)
-        pdf.multi_cell(0, 10, "Se remite a Staff de Seguridad Patrimonial.\nSe adjunta registro fotográfico.")
-
-        # --- Fotos en 2 columnas ---
-        if fotos:
-            pdf.ln(5)
-            col_width = (pdf.w - 30) / 2
-            max_height_in_row = 0
-            for i, foto in enumerate(fotos):
-                image = Image.open(foto)
-                dpi = 96
-                width_mm = min(image.width * 25.4 / dpi, col_width)
-                height_mm = width_mm * image.height / image.width
-                max_height_in_row = max(max_height_in_row, height_mm)
-
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
-                    image.save(tmp.name, format="PNG")
-                    x_pos = 15 if i % 2 == 0 else 15 + col_width
-                    y_pos = pdf.get_y()
-                    pdf.image(tmp.name, x=x_pos, y=y_pos, w=width_mm, h=height_mm)
-                    os.unlink(tmp.name)
-
-                    if i % 2 == 1:
-                        pdf.ln(max_height_in_row + 5)
-                        max_height_in_row = 0
-
-            if len(fotos) % 2 == 1:
-                pdf.ln(max_height_in_row + 5)
-
-            st.markdown("### Fotos subidas")
-            for foto in fotos:
-                st.image(foto, width=200)
-
-        # --- Insertar firma como imagen ---
-        if firma:
+            # --- Encabezado corporativo ---
+            pdf.set_font("Arial", "B", 28)
+            pdf.set_text_color(0, 128, 0)
+            pdf.cell(0, 12, "HUARPE SEGURIDAD", ln=True, align="C")
+            pdf.set_font("Arial", "B", 16)
+            pdf.cell(0, 10, "SEGURIDAD INTEGRAL", ln=True, align="C")
+            pdf.set_text_color(0, 0, 0)
+            pdf.cell(0, 8, "Patrulla Huarpe", ln=True, align="C")
             pdf.ln(10)
-            pdf.set_font("Arial", "B", 12)
-            pdf.cell(0, 6, "Firma del guardia:", ln=True)
-            img = Image.open(firma)
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
-                img.save(tmp_sig.name, format="PNG")
-                # Alinea a la derecha
-                x_start = pdf.w - 15 - 60
-                y_start = pdf.get_y()
-                pdf.rect(x_start - 2, y_start - 2, 60 + 4, 30 + 4)  # marco
-                pdf.image(tmp_sig.name, x=x_start, y=y_start, w=60, h=30)
-                pdf.ln(40)
-                os.unlink(tmp_sig.name)
 
-        # --- Guardar y descargar PDF ---
-        pdf_file = "Reporte_Exceso-Vicuna_Firma.pdf"
-        pdf.output(pdf_file)
-        with open(pdf_file, "rb") as f:
-            st.download_button("Descargar Reporte PDF", f, file_name=pdf_file, mime="application/pdf")
+            # --- Informe ---
+            pdf.set_font("Arial", "B", 12)
+            pdf.cell(0, 6, "Señores", ln=True)
+            pdf.cell(0, 6, "Seguridad Patrimonial", ln=True)
+            pdf.cell(0, 6, "Proyecto Vicuña", ln=True)
+            pdf.cell(0, 6, "S_/_D", ln=True)
+            pdf.ln(5)
+            pdf.set_font("Arial", "", 12)
+            pdf.multi_cell(0, 8, f"""Para informar, exceso de velocidad:
+Hora del registro {hora}Hs
+Chofer {chofer} (DNI: {dni})
+Empresa {empresa}
+Sector {sector}
+Zona de velocidad {zona} km/h
+Exceso de velocidad {exceso} km/h
+Dominio del vehículo {patente}
+
+Se remite a Staff de Seguridad Patrimonial.
+Se adjunta registro fotográfico.""")
+
+            pdf.ln(5)
+
+            # --- Fotos en 2 columnas ---
+            if fotos:
+                col_width = (pdf.w - 30) / 2
+                max_height_in_row = 0
+                for i, foto in enumerate(fotos):
+                    image = Image.open(foto)
+                    dpi = 96
+                    width_mm = min(image.width * 25.4 / dpi, col_width)
+                    height_mm = width_mm * image.height / image.width
+                    max_height_in_row = max(max_height_in_row, height_mm)
+
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                        image.save(tmp.name, format="PNG")
+                        x_pos = 15 if i % 2 == 0 else 15 + col_width
+                        y_pos = pdf.get_y()
+                        pdf.image(tmp.name, x=x_pos, y=y_pos, w=width_mm, h=height_mm)
+                        os.unlink(tmp.name)
+
+                        if i % 2 == 1:
+                            pdf.ln(max_height_in_row + 5)
+                            max_height_in_row = 0
+
+                if len(fotos) % 2 == 1:
+                    pdf.ln(max_height_in_row + 5)
+
+            # --- Firma al final derecha ---
+            if firma:
+                pdf.ln(10)
+                pdf.set_font("Arial", "B", 12)
+                pdf.cell(0, 6, "Firma del guardia:", ln=True)
+                img = Image.open(firma)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
+                    img.save(tmp_sig.name, format="PNG")
+                    x_start = pdf.w - 15 - 60
+                    y_start = pdf.get_y()
+                    pdf.rect(x_start - 2, y_start - 2, 60 + 4, 30 + 4)
+                    pdf.image(tmp_sig.name, x=x_start, y=y_start, w=60, h=30)
+                    pdf.ln(40)
+                    os.unlink(tmp_sig.name)
+
+            # --- Descargar PDF ---
+            pdf_file = "Reporte_Exceso-Vicuna_Firma.pdf"
+            pdf.output(pdf_file)
+            with open(pdf_file, "rb") as f:
+                st.download_button("Descargar Reporte PDF", f, file_name=pdf_file, mime="application/pdf")
 
         st.success("Reporte generado correctamente")
