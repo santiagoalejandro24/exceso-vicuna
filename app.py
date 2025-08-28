@@ -8,14 +8,15 @@ import os
 import datetime
 
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
-st.title("Reporte de Exceso de Velocidad - Proyecto Vicuña")
+st.title("Reporte de Exceso de Velocidad")
 
 # ---- Formulario ----
-nombre = st.text_input("Nombre de la persona")
-dni = st.text_input("DNI")
-empresa = st.text_input("Empresa")
-sector = st.text_input("Sector donde se hizo el suceso")
-limite_vel = st.number_input("Límite de velocidad (km/h)", min_value=0, step=1)
+hora = st.text_input("Hora del registro", value=datetime.datetime.now().strftime("%H:%M"))
+chofer = st.text_input("Nombre del Chofer")
+dni = st.text_input("DNI del Chofer")
+empresa = st.text_input("Empresa", value="Vicuña")
+sector = st.text_input("Sector")
+zona_vel = st.number_input("Zona de velocidad (km/h)", min_value=0, step=1)
 exceso_vel = st.number_input("Exceso de velocidad (km/h)", min_value=0, step=1)
 dominio = st.text_input("Dominio del vehículo")
 
@@ -39,6 +40,7 @@ canvas_result = st_canvas(
     key="canvas"
 )
 
+# Nombre y DNI del guardia
 nombre_guardia = st.text_input("Nombre del Guardia")
 dni_guardia = st.text_input("DNI del Guardia")
 
@@ -46,31 +48,23 @@ dni_guardia = st.text_input("DNI del Guardia")
 if st.button("Generar PDF"):
     pdf = FPDF()
     pdf.add_page()
+    pdf.set_font("Arial", size=12)
 
-    # --- Encabezado corporativo ---
-    pdf.set_font("Arial", "B", 20)
-    pdf.set_text_color(0, 50, 0)  # verde corporativo
-    pdf.cell(0, 15, "HUARPE SEGURIDAD", ln=True, align="C")
-    pdf.set_font("Arial", "B", 14)
-    pdf.set_text_color(0,0,0)
-    pdf.cell(0, 10, "Reporte de Exceso de Velocidad - Proyecto Vicuña", ln=True, align="C")
-    pdf.ln(5)
-
-    # --- Datos en cuadros ---
+    # --- Datos del reporte en cuadros con borde grueso y sombreado ---
     def add_field(label, value, fill_color=(245,245,245)):
         pdf.set_fill_color(*fill_color)
-        pdf.set_draw_color(100,100,100)
-        pdf.set_line_width(0.5)
+        pdf.set_draw_color(100,100,100)  # borde gris
+        pdf.set_line_width(0.5)          # borde más grueso
         pdf.set_font("Arial", "B", 11)
         pdf.cell(60, 10, label, border=1, fill=True)
         pdf.set_font("Arial", "", 11)
         pdf.cell(0, 10, str(value), border=1, fill=True, ln=True)
 
-    add_field("Nombre de la persona", nombre, fill_color=(240,240,240))
-    add_field("DNI", dni)
+    add_field("Hora del registro", f"{hora}Hs", fill_color=(240,240,240))
+    add_field("Chofer", f"{chofer} (DNI: {dni})")
     add_field("Empresa", empresa, fill_color=(240,240,240))
-    add_field("Sector donde se hizo el suceso", sector)
-    add_field("Límite de velocidad", f"{limite_vel} km/h", fill_color=(240,240,240))
+    add_field("Sector", sector)
+    add_field("Zona de velocidad", f"{zona_vel} km/h", fill_color=(240,240,240))
     add_field("Exceso de velocidad", f"{exceso_vel} km/h")
     add_field("Dominio del vehículo", dominio, fill_color=(240,240,240))
 
@@ -119,16 +113,19 @@ if st.button("Generar PDF"):
         x_pos = pdf.w - 70
         y_pos = pdf.get_y()
 
+        # Dibujar rectángulo de firma
         pdf.set_draw_color(50,50,50)
         pdf.set_line_width(0.6)
         pdf.rect(x=x_pos, y=y_pos, w=60, h=40)
 
+        # Insertar imagen de la firma dentro del recuadro
         img = Image.fromarray((canvas_result.image_data).astype("uint8"))
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         buf.seek(0)
         pdf.image(buf, x=x_pos + 2, y=y_pos + 2, w=56)
 
+        # Nombre y DNI debajo del recuadro
         pdf.set_xy(x_pos, y_pos + 42)
         pdf.set_font("Arial", "", 10)
         pdf.multi_cell(60, 5, f"{nombre_guardia}\nDNI: {dni_guardia}", align="C")
@@ -138,6 +135,6 @@ if st.button("Generar PDF"):
     st.download_button(
         "📄 Descargar PDF",
         data=pdf_output,
-        file_name="Reporte_Exceso-Vicuña.pdf",
+        file_name="Reporte_Exceso_Vicuña.pdf",
         mime="application/pdf"
     )
