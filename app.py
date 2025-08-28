@@ -61,13 +61,13 @@ if enviar:
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_font("Arial", "", 12)
 
-    # --- Encabezado corporativo ---
-    pdf.set_font("Arial", "B", 22)  # Más gordito para HUARPE SEGURIDAD
+    # --- Encabezado corporativo final ---
+    pdf.set_font("Arial", "B", 28)  # HUARPE SEGURIDAD grande
     pdf.set_text_color(0, 128, 0)   # Verde
-    pdf.cell(0, 10, "HUARPE SEGURIDAD", ln=True, align="C")
+    pdf.cell(0, 12, "HUARPE SEGURIDAD", ln=True, align="C")
 
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 8, "Seguridad Integral", ln=True, align="C")
+    pdf.set_font("Arial", "B", 16)  # SEGURIDAD INTEGRAL
+    pdf.cell(0, 10, "SEGURIDAD INTEGRAL", ln=True, align="C")
 
     pdf.set_text_color(0, 0, 0)     # Negro para Patrulla Huarpe
     pdf.cell(0, 8, "Patrulla Huarpe", ln=True, align="C")
