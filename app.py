@@ -61,17 +61,19 @@ if enviar:
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_font("Arial", "", 12)
 
-    # --- Encabezado corporativo final ---
-    pdf.set_font("Arial", "B", 28)  # HUARPE SEGURIDAD grande
+    # --- Encabezado corporativo solo HUARPE ---
+    pdf.set_font("Arial", "B", 36)  # Tamaño muy grande para HUARPE
     pdf.set_text_color(0, 128, 0)   # Verde
-    pdf.cell(0, 12, "HUARPE SEGURIDAD", ln=True, align="C")
 
-    pdf.set_font("Arial", "B", 16)  # SEGURIDAD INTEGRAL
-    pdf.cell(0, 10, "SEGURIDAD INTEGRAL", ln=True, align="C")
-
-    pdf.set_text_color(0, 0, 0)     # Negro para Patrulla Huarpe
-    pdf.cell(0, 8, "Patrulla Huarpe", ln=True, align="C")
-    pdf.ln(10)
+    # Letras más juntas simulando mayor densidad
+    texto = "HUARPE"
+    espaciado = 0.8  # ajuste de espacio entre letras (mm)
+    x_start = (pdf.w - len(texto) * 10) / 2  # posición centrada aproximada
+    pdf.set_x(x_start)
+    for letra in texto:
+        pdf.cell(10, 12, letra, ln=0, align="C")
+        pdf.set_x(pdf.get_x() - (10 - espaciado))  # reduce el espacio entre letras
+    pdf.ln(15)  # espacio debajo para el resto del contenido
 
     # --- Sección tradicional ---
     pdf.set_font("Arial", "B", 14)
