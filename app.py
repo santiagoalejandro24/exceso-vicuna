@@ -1,136 +1,104 @@
 import streamlit as st
 from fpdf import FPDF
-from streamlit_drawable_canvas import st_canvas
 from PIL import Image
-import io
 import tempfile
 import os
-import datetime
 
+# ---- Configuración página ----
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
-st.title("Reporte de Exceso de Velocidad")
+
+# ---- Estilos CSS ----
+st.markdown("""
+<style>  
+body { background-color: #0E1117; color: #FAFAFA; font-family: Arial, sans-serif; }
+h1 { text-align: center; color: #F5C518; }
+.stButton>button { background-color: #F5C518; color: black; font-weight: bold; }
+</style>
+""", unsafe_allow_html=True)
+
+# ---- Título ----
+st.title("📑 Reporte Exceso Vicuña")
 
 # ---- Formulario ----
-hora = st.text_input("Hora del registro", value=datetime.datetime.now().strftime("%H:%M"))
-chofer = st.text_input("Nombre del Chofer")
-dni = st.text_input("DNI del Chofer")
-empresa = st.text_input("Empresa", value="Vicuña")
-sector = st.text_input("Sector")
-zona_vel = st.number_input("Zona de velocidad (km/h)", min_value=0, step=1)
-exceso_vel = st.number_input("Exceso de velocidad (km/h)", min_value=0, step=1)
-dominio = st.text_input("Dominio del vehículo")
+with st.form("reporte_form"):
+    fecha = st.date_input("📅 Fecha del reporte")
+    hora = st.time_input("⏰ Hora del reporte")
+    lugar = st.text_input("📍 Lugar del evento")
+    descripcion = st.text_area("📝 Descripción del evento")
+    uploaded_images = st.file_uploader("📷 Subir imágenes", type=["png", "jpg", "jpeg"], accept_multiple_files=True)
+    submitted = st.form_submit_button("📌 Generar Reporte")
 
-# Fotos de evidencia
-fotos = st.file_uploader(
-    "Subir imágenes de evidencia",
-    type=["png", "jpg", "jpeg"],
-    accept_multiple_files=True
-)
-
-# Firma digital
-st.write("### Firma del Guardia")
-canvas_result = st_canvas(
-    fill_color="rgba(255, 255, 255, 0)",
-    stroke_width=2,
-    stroke_color="#000000",
-    background_color="#FFFFFF",
-    height=150,
-    width=400,
-    drawing_mode="freedraw",
-    key="canvas"
-)
-
-# Nombre y DNI del guardia para el recuadro
-nombre_guardia = st.text_input("Nombre del Guardia")
-dni_guardia = st.text_input("DNI del Guardia")
-
-# ---- Generar PDF ----
-if st.button("Generar PDF"):
+if submitted:
+    # ---- Crear PDF ----
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(0, 10, "Reporte de Exceso - Proyecto Vicuña", ln=True, align="C")
+    pdf.ln(10)
 
-    # --- Datos del reporte en cuadros con fondo gris suave ---
-    def add_field(label, value, fill_color=(240,240,240)):
-        pdf.set_fill_color(*fill_color)
-        pdf.set_font("Arial", "B", 11)
-        pdf.cell(60, 10, label, border=1, fill=True)
-        pdf.set_font("Arial", "", 11)
-        pdf.cell(0, 10, str(value), border=1, ln=True, fill=True)
+    pdf.set_font("Arial", '', 12)
+    pdf.cell(0, 10, f"📅 Fecha: {fecha}", ln=True)
+    pdf.cell(0, 10, f"⏰ Hora: {hora}", ln=True)
+    pdf.cell(0, 10, f"📍 Lugar: {lugar}", ln=True)
+    pdf.multi_cell(0, 10, f"📝 Descripción:\n{descripcion}")
+    pdf.ln(10)
 
-    add_field("Hora del registro", f"{hora}Hs")
-    add_field("Chofer", f"{chofer} (DNI: {dni})", fill_color=(245,245,245))
-    add_field("Empresa", empresa)
-    add_field("Sector", sector, fill_color=(245,245,245))
-    add_field("Zona de velocidad", f"{zona_vel} km/h")
-    add_field("Exceso de velocidad", f"{exceso_vel} km/h", fill_color=(245,245,245))
-    add_field("Dominio del vehículo", dominio)
+    # ---- Insertar imágenes en el PDF ----
+    if uploaded_images:
+        pdf.set_font("Arial", 'B', 12)
+        pdf.cell(0, 10, "📷 Imágenes adjuntas:", ln=True)
 
-    pdf.ln(5)
+        i = 0
+        while i < len(uploaded_images):
+            img = uploaded_images[i]
+            image = Image.open(img)
+            w, h = image.size
 
-    # --- Fotos de evidencia ---
-    if fotos:
-        pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 10, "Evidencias fotográficas:", ln=True)
+            # Detectar si hay dos imágenes verticales seguidas
+            if i + 1 < len(uploaded_images):
+                next_img = Image.open(uploaded_images[i+1])
+                w2, h2 = next_img.size
 
-        max_width = 90
-        max_height = 100
-        x_left = 10
-        x_right = 10 + max_width + 10
-        y_position = pdf.get_y() + 5
-        img_count = 0
+                if h > w and h2 > w2:  # ambas son verticales
+                    # Guardar temporalmente ambas
+                    img_path1 = tempfile.mktemp(suffix=".png")
+                    image.save(img_path1)
+                    img_path2 = tempfile.mktemp(suffix=".png")
+                    next_img.save(img_path2)
 
-        for foto in fotos:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-                tmpfile.write(foto.read())
-                tmpfile_path = tmpfile.name
+                    # Ajustar a mitad de la página cada una
+                    max_width = (pdf.w - 40) / 2
+                    new_h = int(h * (max_width / w))
+                    new_h2 = int(h2 * (max_width / w2))
 
-            image = Image.open(tmpfile_path)
-            width, height = image.size
-            ratio = min(max_width / width, max_height / height)
-            w = int(width * ratio)
-            h = int(height * ratio)
+                    y_before = pdf.get_y()
+                    pdf.image(img_path1, x=10, y=y_before, w=max_width)
+                    pdf.image(img_path2, x=pdf.w/2 + 5, y=y_before, w=max_width)
 
-            x = x_left if img_count % 2 == 0 else x_right
-            pdf.image(tmpfile_path, x=x, y=y_position, w=w, h=h)
+                    pdf.ln(max(new_h, new_h2) + 10)
+                    i += 2
+                    continue
 
-            if img_count % 2 == 1:
-                y_position += max_height + 10
+            # Si no hay par, insertar normal
+            img_path = tempfile.mktemp(suffix=".png")
+            image.save(img_path)
 
-            img_count += 1
-            os.unlink(tmpfile_path)
+            max_width = pdf.w - 40
+            if w > h:  # horizontal
+                new_h = int(h * (max_width / w))
+                pdf.image(img_path, x=10, y=pdf.get_y(), w=max_width)
+                pdf.ln(new_h + 10)
+            else:  # vertical sola
+                max_height = 120
+                new_w = int(w * (max_height / h))
+                pdf.image(img_path, x=(pdf.w - new_w) / 2, y=pdf.get_y(), h=max_height)
+                pdf.ln(max_height + 10)
 
-        if img_count % 2 == 1:
-            y_position += max_height + 10
+            i += 1
 
-        pdf.ln(10)
+    # ---- Guardar PDF ----
+    temp_pdf = tempfile.mktemp(suffix=".pdf")
+    pdf.output(temp_pdf)
 
-    # --- Recuadro de firma al final a la derecha ---
-    if canvas_result.image_data is not None:
-        pdf.set_y(-60)
-        x_pos = pdf.w - 70
-        y_pos = pdf.get_y()
-
-        # Dibujar rectángulo de firma
-        pdf.rect(x=x_pos, y=y_pos, w=60, h=40)
-
-        # Insertar imagen de la firma dentro del recuadro
-        img = Image.fromarray((canvas_result.image_data).astype("uint8"))
-        buf = io.BytesIO()
-        img.save(buf, format="PNG")
-        buf.seek(0)
-        pdf.image(buf, x=x_pos + 2, y=y_pos + 2, w=56)
-
-        # Nombre y DNI debajo del recuadro
-        pdf.set_xy(x_pos, y_pos + 42)
-        pdf.set_font("Arial", "", 10)
-        pdf.multi_cell(60, 5, f"{nombre_guardia}\nDNI: {dni_guardia}", align="C")
-
-    # --- Descargar PDF ---
-    pdf_output = pdf.output(dest="S").encode("latin-1")
-    st.download_button(
-        "📄 Descargar PDF",
-        data=pdf_output,
-        file_name="Reporte_Exceso_Vicuña.pdf",
-        mime="application/pdf"
-    )
+    with open(temp_pdf, "rb") as file:
+        st.download_button("⬇️ Descargar Reporte PDF", file, file_name="Reporte_Exceso_Vicuña.pdf")
