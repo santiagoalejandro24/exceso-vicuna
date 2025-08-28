@@ -61,12 +61,14 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
     pdf.set_text_color(0, 128, 0)
     
     # Texto "HUARPE" - Tamaño de fuente 40
+    # Altura reducida para menor separación
     pdf.set_font("Arial", "B", 40)
-    pdf.cell(0, 15, "HUARPE", 0, 1, 'C') # Reducido el espacio vertical de 20 a 15
+    pdf.cell(0, 12, "HUARPE", 0, 1, 'C')
     
     # Texto "SEGURIDAD INTEGRAL" - Tamaño de fuente 24
+    # Altura reducida para menor separación
     pdf.set_font("Arial", "", 24)
-    pdf.cell(0, 10, "SEGURIDAD INTEGRAL", 0, 1, 'C') # Reducido el espacio vertical de 12 a 10
+    pdf.cell(0, 8, "SEGURIDAD INTEGRAL", 0, 1, 'C')
 
     # Volver al color negro para el resto del documento
     pdf.set_text_color(0, 0, 0)
