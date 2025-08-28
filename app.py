@@ -7,27 +7,27 @@ st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 st.markdown("""
     <style>
         body { background-color: #0E1117; color: #FAFAFA; }
-        h1, label, p { color: #FAFAFA !important; }
-        .stTextInput, .stTextArea, .stNumberInput { background-color: #1E1E1E !important; color: white !important; }
-        .stButton>button { background-color: #6200EE; color: white; border-radius: 8px; padding: 0.6em 1.2em; }
+        h1, label, p { color: #FAFAFA !important; font-family: Arial, sans-serif; }
+        .stTextInput, .stTextArea, .stNumberInput { background-color: #1E1E1E !important; color: white !important; font-family: Arial, sans-serif; }
+        .stButton>button { background-color: #6200EE; color: white; border-radius: 8px; padding: 0.6em 1.2em; font-family: Arial, sans-serif; }
         .stButton>button:hover { background-color: #3700B3; color: white; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📋 Control de Exceso de Velocidad - Proyecto Vicuña")
+st.title("Control de Exceso de Velocidad - Proyecto Vicuña")
 
 # ---- Formulario completo ----
 with st.form("formulario"):
-    hora = st.text_input("⏰ Hora del registro (ej: 09:52)")
-    chofer = st.text_input("👤 Chofer (Nombre y Apellido)")
-    dni = st.text_input("🪪 DNI del chofer")
-    empresa = st.text_input("🏢 Empresa")
-    sector = st.text_input("📍 Sector (ej: Km 170, La Majadita, etc.)")
-    zona = st.number_input("🚧 Zona permitida (km/h)", min_value=0, max_value=200)
-    exceso = st.number_input("💨 Exceso de velocidad (km/h)", min_value=0, max_value=300)
-    patente = st.text_input("🚗 Dominio del vehículo")
-    observaciones = st.text_area("📝 Observaciones adicionales (opcional)")
-    enviar = st.form_submit_button("✅ Generar PDF")
+    hora = st.text_input("Hora del registro (ej: 09:52)")
+    chofer = st.text_input("Chofer (Nombre y Apellido)")
+    dni = st.text_input("DNI del chofer")
+    empresa = st.text_input("Empresa")
+    sector = st.text_input("Sector (ej: Km 170, La Majadita, etc.)")
+    zona = st.number_input("Zona de velocidad permitida (km/h)", min_value=0, max_value=200)
+    exceso = st.number_input("Exceso de velocidad registrado (km/h)", min_value=0, max_value=300)
+    patente = st.text_input("Dominio del vehículo")
+    observaciones = st.text_area("Observaciones adicionales (opcional)")
+    enviar = st.form_submit_button("Generar PDF")
 
 # ---- Generar PDF profesional con cuadros ----
 if enviar:
@@ -67,14 +67,13 @@ if enviar:
         add_row("Observaciones adicionales", observaciones)
 
     pdf.ln(5)
-    # Se remite y registro fotográfico
     pdf.multi_cell(0, 10, "Se remite a Staff de Seguridad Patrimonial.\nSe adjunta registro fotográfico.")
 
     # Guardar PDF
-    pdf_file = "Reporte_Exceso_Vicuña.pdf"
+    pdf_file = "Reporte_Exceso-Vicuna.pdf"
     pdf.output(pdf_file)
 
     with open(pdf_file, "rb") as f:
-        st.download_button("📥 Descargar Reporte PDF", f, file_name=pdf_file, mime="application/pdf")
+        st.download_button("Descargar Reporte PDF", f, file_name=pdf_file, mime="application/pdf")
 
-    st.success("✅ Reporte generado correctamente")
+    st.success("Reporte generado correctamente")
