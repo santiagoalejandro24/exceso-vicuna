@@ -7,15 +7,16 @@ import os
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 st.title("Reporte de Exceso de Velocidad - Proyecto Vicuña")
 
-# ---- Formulario oficial ----
+# ---- Formulario ----
 with st.form("formulario_reporte"):
     st.subheader("Datos del Suceso")
-    nombre = st.text_input("Nombre de la persona")
-    dni = st.text_input("DNI")
+    hora = st.text_input("Hora del registro (ej: 12:30)")
+    chofer = st.text_input("Chofer (Nombre y Apellido)")
+    dni = st.text_input("DNI del chofer")
     empresa = st.text_input("Empresa")
     sector = st.text_input("Sector donde se hizo el suceso")
-    limite_vel = st.number_input("Límite de velocidad (km/h)", min_value=0, step=1)
-    exceso_vel = st.number_input("Exceso de velocidad (km/h)", min_value=0, step=1)
+    zona_vel = st.number_input("Zona de velocidad permitida (km/h)", min_value=0, max_value=200)
+    exceso_vel = st.number_input("Exceso de velocidad registrado (km/h)", min_value=0, max_value=300)
     dominio = st.text_input("Dominio del vehículo")
 
     st.subheader("Evidencia fotográfica")
@@ -40,39 +41,43 @@ if enviar:
     pdf = FPDF()
     pdf.add_page()
 
-    # --- Encabezado ---
-    pdf.set_font("Arial", "B", 20)
-    pdf.set_text_color(0, 50, 0)
-    pdf.cell(0, 15, "HUARPE SEGURIDAD", ln=True, align="C")
-    pdf.set_font("Arial", "B", 14)
-    pdf.set_text_color(0,0,0)
-    pdf.cell(0, 10, "Reporte de Exceso de Velocidad - Proyecto Vicuña", ln=True, align="C")
+    # --- Encabezado corporativo ---
+    pdf.set_font("Arial", "B", 28)
+    pdf.set_text_color(0, 128, 0)   # Verde
+    pdf.cell(0, 12, "HUARPE SEGURIDAD", ln=True, align="C")
+
+    pdf.set_font("Arial", "B", 16)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 10, "SEGURIDAD INTEGRAL", ln=True, align="C")
+
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 8, "Patrulla Huarpe", ln=True, align="C")
+    pdf.ln(10)
+
+    # --- Sección oficial de texto ---
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, "Señores", ln=True)
+    pdf.cell(0, 10, "Seguridad Patrimonial", ln=True)
+    pdf.cell(0, 10, "Proyecto Vicuña", ln=True)
+    pdf.cell(0, 10, "S_/_D", ln=True)
     pdf.ln(5)
 
-    # --- Datos en cuadros ---
-    def add_field(label, value, fill_color=(245,245,245)):
-        pdf.set_fill_color(*fill_color)
-        pdf.set_draw_color(150,150,150)
-        pdf.set_line_width(0.5)
-        pdf.set_font("Arial", "B", 11)
-        pdf.cell(60, 10, label, border=1, fill=True)
-        pdf.set_font("Arial", "", 11)
-        pdf.cell(0, 10, str(value), border=1, fill=True, ln=True)
+    pdf.set_font("Arial", "", 12)
+    pdf.multi_cell(0, 8, f"""Para informar, exceso de velocidad:
+Hora del registro {hora}Hs
+Chofer {chofer} (DNI: {dni})
+Empresa {empresa}
+Sector {sector}
+Zona de velocidad {zona_vel} km/h
+Exceso de velocidad {exceso_vel} km/h
+Dominio del vehículo {dominio}
 
-    add_field("Nombre de la persona", nombre, fill_color=(250,250,250))
-    add_field("DNI", dni)
-    add_field("Empresa", empresa, fill_color=(250,250,250))
-    add_field("Sector donde se hizo el suceso", sector)
-    add_field("Límite de velocidad", f"{limite_vel} km/h", fill_color=(250,250,250))
-    add_field("Exceso de velocidad", f"{exceso_vel} km/h")
-    add_field("Dominio del vehículo", dominio, fill_color=(250,250,250))
+Se remite a Staff de Seguridad Patrimonial.
+Se adjunta registro fotográfico.""")
     pdf.ln(5)
 
     # --- Fotos ---
     if fotos:
-        pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 10, "Evidencias fotográficas:", ln=True)
-
         max_width = 90
         max_height = 100
         x_left = 10
@@ -82,7 +87,6 @@ if enviar:
 
         for foto in fotos:
             image = Image.open(foto)
-            # Guardar temporalmente como PNG válido
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
                 image.save(tmpfile.name, format="PNG")
                 tmpfile_path = tmpfile.name
@@ -106,7 +110,7 @@ if enviar:
 
         pdf.ln(10)
 
-    # --- Firma al final a la derecha ---
+    # --- Firma al final derecha ---
     if firma_guardia:
         pdf.set_y(-60)
         x_pos = pdf.w - 70
