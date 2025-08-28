@@ -249,3 +249,4 @@ if enviar:
                 st.success("Reporte generado correctamente. ¡Haga clic en el botón de descarga!")
             except Exception as e:
                 st.error(f"Hubo un error al generar el PDF: {e}")
+            
