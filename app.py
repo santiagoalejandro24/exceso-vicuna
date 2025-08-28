@@ -62,12 +62,12 @@ if enviar:
     pdf.set_font("Arial", "", 12)
 
     # --- Encabezado corporativo ---
-    pdf.set_font("Arial", "B", 16)
+    pdf.set_font("Arial", "B", 18)
     pdf.cell(0, 10, "Huarpe Seguridad", ln=True, align="C")
-    pdf.set_font("Arial", "", 12)
+    pdf.set_font("Arial", "B", 14)
     pdf.cell(0, 8, "Seguridad Integral", ln=True, align="C")
     pdf.cell(0, 8, "Patrulla Huarpe", ln=True, align="C")
-    pdf.ln(5)
+    pdf.ln(10)
 
     # --- Sección tradicional ---
     pdf.set_font("Arial", "B", 14)
@@ -106,13 +106,14 @@ if enviar:
     if fotos:
         pdf.ln(5)
         col_width = (pdf.w - 30) / 2  # ancho de cada columna
+        max_height_in_row = 0
         for i, foto in enumerate(fotos):
             image = Image.open(foto)
-            # Mantener buena resolución
-            max_width_mm = col_width
+            # Mantener proporción
             dpi = 96
-            width_mm = min(image.width * 25.4 / dpi, max_width_mm)
+            width_mm = min(image.width * 25.4 / dpi, col_width)
             height_mm = width_mm * image.height / image.width
+            max_height_in_row = max(max_height_in_row, height_mm)
 
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
                 image.save(tmp.name, format="PNG")
@@ -123,8 +124,11 @@ if enviar:
 
                 # Si la foto es la segunda de la fila, saltar a la siguiente fila
                 if i % 2 == 1:
-                    pdf.ln(height_mm + 5)
-        pdf.ln(5)
+                    pdf.ln(max_height_in_row + 5)
+                    max_height_in_row = 0
+        # Si queda una foto sola en fila, saltar línea
+        if len(fotos) % 2 == 1:
+            pdf.ln(max_height_in_row + 5)
 
         # Miniaturas en portal
         st.markdown("### Fotos subidas")
