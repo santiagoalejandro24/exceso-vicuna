@@ -58,22 +58,21 @@ def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_font("Arial", "", 10)
 
-    # ... (El código de generación del PDF es el mismo que el anterior) ...
-    # Asegúrate de que todas las imágenes temporales se eliminen dentro de esta función.
-
     # --- Encabezado ---
-    # Posición de los logos (ajustar según tamaños reales)
-    pdf.set_font("Arial", "", 8)
+    # Colocar "PATRULLA BATIDERO"
+    pdf.set_font("Arial", "B", 10)
     pdf.set_xy(15, 15)
-    pdf.cell(30, 5, "Gral. Juan Madariaga", 0, 0, 'L')
+    pdf.multi_cell(30, 4, "PATRULLA\nBATIDERO", 0, 'L')
     
-    pdf.set_font("Arial", "", 8)
+    # Colocar "HUARPE SEGURIDAD"
+    pdf.set_font("Arial", "B", 10)
     pdf.set_xy(50, 15)
-    pdf.multi_cell(100, 4, "Dirección Provincial de Política y Seguridad Vial - Ministerio de Infraestructura y Servicios Públicos", 0, 'C')
+    pdf.multi_cell(100, 4, "HUARPE SEGURIDAD", 0, 'C')
 
-    pdf.set_font("Arial", "", 8)
+    # Colocar "PROYECTO VICUÑA"
+    pdf.set_font("Arial", "B", 10)
     pdf.set_xy(165, 15)
-    pdf.multi_cell(30, 4, "GOBIERNO DE LA PROVINCIA DE BUENOS AIRES", 0, 'R')
+    pdf.multi_cell(30, 4, "PROYECTO\nVICUÑA", 0, 'R')
     pdf.ln(15)
 
     # --- Sección: INFORMACIÓN DE LA CAUSA ---
@@ -268,8 +267,6 @@ def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
             os.unlink(tmp_sig.name)
         pdf.ln(10)
 
-    # El cambio más importante está aquí: en lugar de guardar en un archivo,
-    # obtén el contenido del PDF como bytes
     return pdf.output(dest='S').encode('latin1')
 
 # ---- Contenedor del formulario ----
@@ -305,7 +302,6 @@ with st.container():
 
 # ---- Generar PDF con indicador visual ----
 if enviar:
-    # Datos para la validación y el PDF
     datos_formulario = {
         "hora": hora,
         "chofer": chofer,
@@ -332,10 +328,8 @@ if enviar:
 
         with st.spinner("Generando PDF, por favor espere..."):
             try:
-                # La función ahora devuelve el contenido del PDF, no una ruta de archivo.
                 pdf_bytes = generar_pdf_formato_oficial(datos_formulario, firma, fotos_validas)
                 
-                # El botón de descarga usa directamente los bytes.
                 st.download_button(
                     label="Descargar Reporte PDF",
                     data=pdf_bytes,
@@ -346,3 +340,4 @@ if enviar:
                 st.success("Reporte generado correctamente. ¡Haga clic en el botón de descarga!")
             except Exception as e:
                 st.error(f"Hubo un error al generar el PDF: {e}")
+    
