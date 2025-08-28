@@ -10,57 +10,53 @@ import datetime
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 st.title("Reporte de Exceso de Velocidad - Proyecto Vicuña")
 
-# ---- Formulario limpio estilo oficial ----
-with st.form("formulario_reporte"):
-    st.subheader("Datos del registro")
+# ---- Formulario ----
+nombre = st.text_input("Nombre de la persona")
+dni = st.text_input("DNI")
+empresa = st.text_input("Empresa")
+sector = st.text_input("Sector donde se hizo el suceso")
+limite_vel = st.number_input("Límite de velocidad (km/h)", min_value=0, step=1)
+exceso_vel = st.number_input("Exceso de velocidad (km/h)", min_value=0, step=1)
+dominio = st.text_input("Dominio del vehículo")
 
-    nombre = st.text_input("Nombre de la persona")
-    dni = st.text_input("DNI")
-    empresa = st.text_input("Empresa")
-    sector = st.text_input("Sector donde se hizo el suceso")
-    limite_vel = st.number_input("Límite de velocidad (km/h)", min_value=0, step=1)
-    exceso_vel = st.number_input("Exceso de velocidad (km/h)", min_value=0, step=1)
-    dominio = st.text_input("Dominio del vehículo")
+# Fotos de evidencia
+fotos = st.file_uploader(
+    "Subir imágenes de evidencia",
+    type=["png", "jpg", "jpeg"],
+    accept_multiple_files=True
+)
 
-    st.subheader("Evidencia fotográfica")
-    fotos = st.file_uploader(
-        "Subir imágenes (png, jpg, jpeg) - max 2 por fila",
-        type=["png","jpg","jpeg"],
-        accept_multiple_files=True
-    )
+# Firma digital
+st.write("### Firma del Guardia")
+canvas_result = st_canvas(
+    fill_color="rgba(255, 255, 255, 0)",
+    stroke_width=2,
+    stroke_color="#000000",
+    background_color="#FFFFFF",
+    height=150,
+    width=400,
+    drawing_mode="freedraw",
+    key="canvas"
+)
 
-    st.subheader("Firma del Guardia")
-    canvas_result = st_canvas(
-        fill_color="rgba(255, 255, 255, 0)",
-        stroke_width=2,
-        stroke_color="#000000",
-        background_color="#FFFFFF",
-        height=150,
-        width=400,
-        drawing_mode="freedraw",
-        key="canvas"
-    )
-
-    nombre_guardia = st.text_input("Nombre del Guardia")
-    dni_guardia = st.text_input("DNI del Guardia")
-
-    enviar = st.form_submit_button("Generar PDF")
+nombre_guardia = st.text_input("Nombre del Guardia")
+dni_guardia = st.text_input("DNI del Guardia")
 
 # ---- Generar PDF ----
-if enviar:
+if st.button("Generar PDF"):
     pdf = FPDF()
     pdf.add_page()
 
     # --- Encabezado corporativo ---
     pdf.set_font("Arial", "B", 20)
-    pdf.set_text_color(0, 50, 0)
+    pdf.set_text_color(0, 50, 0)  # verde corporativo
     pdf.cell(0, 15, "HUARPE SEGURIDAD", ln=True, align="C")
     pdf.set_font("Arial", "B", 14)
     pdf.set_text_color(0,0,0)
     pdf.cell(0, 10, "Reporte de Exceso de Velocidad - Proyecto Vicuña", ln=True, align="C")
     pdf.ln(5)
 
-    # --- Datos en cuadros estilo oficial ---
+    # --- Datos en cuadros ---
     def add_field(label, value, fill_color=(245,245,245)):
         pdf.set_fill_color(*fill_color)
         pdf.set_draw_color(100,100,100)
@@ -77,6 +73,7 @@ if enviar:
     add_field("Límite de velocidad", f"{limite_vel} km/h", fill_color=(240,240,240))
     add_field("Exceso de velocidad", f"{exceso_vel} km/h")
     add_field("Dominio del vehículo", dominio, fill_color=(240,240,240))
+
     pdf.ln(5)
 
     # --- Fotos de evidencia ---
@@ -116,7 +113,7 @@ if enviar:
 
         pdf.ln(10)
 
-    # --- Firma digital a la derecha ---
+    # --- Recuadro de firma al final a la derecha ---
     if canvas_result.image_data is not None:
         pdf.set_y(-60)
         x_pos = pdf.w - 70
