@@ -1,10 +1,9 @@
 import streamlit as st
 from fpdf import FPDF
-from streamlit_drawable_canvas import st_canvas
 from PIL import Image
-import io
 import tempfile
 import os
+import io
 
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 st.title("Reporte de Exceso de Velocidad - Proyecto Vicuña")
@@ -28,15 +27,9 @@ with st.form("formulario_reporte"):
     )
 
     st.subheader("Firma del Guardia")
-    canvas_result = st_canvas(
-        fill_color="rgba(255, 255, 255, 0)",
-        stroke_width=2,
-        stroke_color="#000000",
-        background_color="#FFFFFF",
-        height=150,
-        width=400,
-        drawing_mode="freedraw",
-        key="canvas"
+    firma_guardia = st.file_uploader(
+        "Subir imagen de la firma del guardia (png, jpg)",
+        type=["png","jpg","jpeg"]
     )
     nombre_guardia = st.text_input("Nombre del Guardia")
     dni_guardia = st.text_input("DNI del Guardia")
@@ -67,7 +60,6 @@ if enviar:
         pdf.set_font("Arial", "", 11)
         pdf.cell(0, 10, str(value), border=1, fill=True, ln=True)
 
-    # Colores alternos suaves: blanco y gris muy claro
     add_field("Nombre de la persona", nombre, fill_color=(250,250,250))
     add_field("DNI", dni)
     add_field("Empresa", empresa, fill_color=(250,250,250))
@@ -114,8 +106,8 @@ if enviar:
 
         pdf.ln(10)
 
-    # --- Firma digital a la derecha ---
-    if canvas_result.image_data is not None:
+    # --- Firma al final a la derecha ---
+    if firma_guardia:
         pdf.set_y(-60)
         x_pos = pdf.w - 70
         y_pos = pdf.get_y()
@@ -124,11 +116,12 @@ if enviar:
         pdf.set_line_width(0.6)
         pdf.rect(x=x_pos, y=y_pos, w=60, h=40)
 
-        img = Image.fromarray((canvas_result.image_data).astype("uint8"))
-        buf = io.BytesIO()
-        img.save(buf, format="PNG")
-        buf.seek(0)
-        pdf.image(buf, x=x_pos + 2, y=y_pos + 2, w=56)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+            tmpfile.write(firma_guardia.read())
+            tmpfile_path = tmpfile.name
+
+        pdf.image(tmpfile_path, x=x_pos + 2, y=y_pos + 2, w=56)
+        os.unlink(tmpfile_path)
 
         pdf.set_xy(x_pos, y_pos + 42)
         pdf.set_font("Arial", "", 10)
@@ -141,4 +134,4 @@ if enviar:
         data=pdf_output,
         file_name="Reporte_Exceso-Vicuña.pdf",
         mime="application/pdf"
-        )
+    )
