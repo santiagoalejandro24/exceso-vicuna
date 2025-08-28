@@ -130,7 +130,7 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
 
     # --- Imágenes ---
     if fotos_files:
-        # Dimensiones máximas para las imágenes
+        # Dimensiones máximas para las imágenes en mm (3cm x 4cm)
         MAX_IMAGE_WIDTH_MM = 30
         MAX_IMAGE_HEIGHT_MM = 40
         SPACE_BETWEEN_IMAGES_MM = 5
@@ -138,27 +138,29 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
         # Posiciones iniciales
         x_pos = pdf.l_margin
         y_pos = pdf.get_y()
-        images_in_row = 0
 
         temp_image_paths = []
         try:
             for foto_file in fotos_files:
                 img_pil = optimizar_imagen(foto_file)
                 
-                # Calcular dimensiones proporcionales
-                ancho_original, alto_original = img_pil.size
-                proporcion = min(MAX_IMAGE_WIDTH_MM / (ancho_original * 25.4 / pdf.dpi), 
-                                 MAX_IMAGE_HEIGHT_MM / (alto_original * 25.4 / pdf.dpi))
+                # Convertir dimensiones de píxeles a mm (usando una DPI de 96 como estándar)
+                DPI = 96
+                ancho_original_mm = img_pil.width * 25.4 / DPI
+                alto_original_mm = img_pil.height * 25.4 / DPI
                 
-                ancho_final_mm = (ancho_original * 25.4 / pdf.dpi) * proporcion
-                alto_final_mm = (alto_original * 25.4 / pdf.dpi) * proporcion
+                # Calcular la proporción para redimensionar
+                proporcion_ancho = MAX_IMAGE_WIDTH_MM / ancho_original_mm
+                proporcion_alto = MAX_IMAGE_HEIGHT_MM / alto_original_mm
+                proporcion = min(proporcion_ancho, proporcion_alto)
+                
+                ancho_final_mm = ancho_original_mm * proporcion
+                alto_final_mm = alto_original_mm * proporcion
 
                 # Verificar si cabe en la fila actual
                 if x_pos + ancho_final_mm + SPACE_BETWEEN_IMAGES_MM > (pdf.w - pdf.r_margin):
-                    # Si no cabe, saltar de línea
                     x_pos = pdf.l_margin
                     y_pos += MAX_IMAGE_HEIGHT_MM + 5
-                    images_in_row = 0
                 
                 # Verificar si cabe en la página
                 if y_pos + alto_final_mm > (pdf.h - pdf.b_margin):
@@ -173,7 +175,6 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
                 pdf.image(tmp.name, x=x_pos, y=y_pos, w=ancho_final_mm, h=alto_final_mm)
                 
                 x_pos += ancho_final_mm + SPACE_BETWEEN_IMAGES_MM
-                images_in_row += 1
 
             pdf.ln(MAX_IMAGE_HEIGHT_MM + 5) # Salto de línea después de la última fila de imágenes
 
@@ -294,4 +295,4 @@ if enviar:
                 st.success("Reporte generado correctamente. ¡Haga clic en el botón de descarga!")
             except Exception as e:
                 st.error(f"Hubo un error al generar el PDF: {e}")
-    
+                
