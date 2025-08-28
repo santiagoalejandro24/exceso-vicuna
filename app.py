@@ -6,36 +6,24 @@ import os
 
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 
-# ---- Estilos CSS profesionales ----
+# ---- Estilos CSS ----
 st.markdown("""
-    <style>
-        body { background-color: #0E1117; color: #FAFAFA; font-family: Arial, sans-serif; }
-        h1, label, p { color: #FAFAFA !important; font-family: Arial, sans-serif; }
-        .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stNumberInput>div>input { 
-            background-color: #1E1E1E !important; 
-            color: white !important; 
-            border: 1px solid #444444 !important;
-            border-radius: 5px !important;
-            padding: 5px !important;
-        }
-        .stButton>button { 
-            background-color: #6200EE; 
-            color: white; 
-            border-radius: 8px; 
-            padding: 0.8em 1.5em; 
-            font-family: Arial, sans-serif; 
-            font-weight: bold;
-        }
-        .stButton>button:hover { background-color: #3700B3; color: white; }
-        .stForm { background-color: #121212; padding: 20px; border-radius: 10px; }
-    </style>
+<style>
+body { background-color: #0E1117; color: #FAFAFA; font-family: Arial, sans-serif; }
+.stTextInput>div>div>input, .stTextArea>div>div>textarea, .stNumberInput>div>input { 
+    background-color: #1E1E1E !important; color: white !important; 
+    border: 1px solid #444444 !important; border-radius: 5px !important; padding: 5px !important;
+}
+.stButton>button { background-color: #6200EE; color: white; border-radius: 8px; padding: 0.8em 1.5em; font-weight: bold;}
+.stButton>button:hover { background-color: #3700B3; color: white; }
+.stForm { background-color: #121212; padding: 20px; border-radius: 10px; }
+</style>
 """, unsafe_allow_html=True)
 
 st.title("Control de Exceso de Velocidad - Proyecto Vicuña")
 
-# ---- Formulario profesional ----
+# ---- Formulario ----
 with st.form("formulario"):
-    st.markdown("### Complete los datos del registro")
     hora = st.text_input("Hora del registro (ej: 09:52)")
     chofer = st.text_input("Chofer (Nombre y Apellido)")
     dni = st.text_input("DNI del chofer")
@@ -45,14 +33,14 @@ with st.form("formulario"):
     exceso = st.number_input("Exceso de velocidad registrado (km/h)", min_value=0, max_value=300)
     patente = st.text_input("Dominio del vehículo")
     observaciones = st.text_area("Observaciones adicionales (opcional)")
-    
+
     fotos = st.file_uploader(
         "Adjunte archivo(s) fotográfico(s) (máx. 30 MB cada uno)",
         type=["jpg", "jpeg", "png"],
         accept_multiple_files=True
     )
 
-    # Validar tamaño máximo 30 MB por archivo
+    # Validar tamaño
     if fotos:
         fotos_validas = []
         for foto in fotos:
@@ -61,17 +49,16 @@ with st.form("formulario"):
             else:
                 fotos_validas.append(foto)
         fotos = fotos_validas
-        
+
     enviar = st.form_submit_button("Generar PDF")
 
-# ---- Generar PDF corporativo con fotos ----
+# ---- PDF ----
 if enviar:
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_font("Arial", "", 12)
 
-    # Encabezado corporativo
     pdf.set_font("Arial", "B", 14)
     pdf.cell(0, 10, "Señores", ln=True)
     pdf.cell(0, 10, "Seguridad Patrimonial", ln=True)
@@ -82,7 +69,7 @@ if enviar:
     pdf.cell(0, 10, "Para informar, exceso de velocidad:", ln=True)
     pdf.ln(5)
 
-    # ---- Tabla con colores alternos ----
+    # Tabla con colores alternos
     pdf.set_font("Arial", "B", 12)
     def add_row(label, value, fill=False):
         pdf.set_font("Arial", "B", 11)
@@ -98,36 +85,37 @@ if enviar:
     add_row("Zona de velocidad", f"{zona} km/h", fill=True)
     add_row("Exceso de velocidad", f"{exceso} km/h", fill=False)
     add_row("Dominio del vehículo", patente, fill=True)
-
     if observaciones.strip() != "":
         add_row("Observaciones adicionales", observaciones, fill=False)
 
     pdf.ln(5)
     pdf.multi_cell(0, 10, "Se remite a Staff de Seguridad Patrimonial.\nSe adjunta registro fotográfico.")
 
-    # ---- Insertar fotos en PDF ----
+    # ---- Fotos con buena resolución ----
     if fotos:
         pdf.ln(5)
         for foto in fotos:
             image = Image.open(foto)
-            image.thumbnail((180, 180))
-            # Guardar temporalmente
+            # Ajuste proporcional sin perder calidad
+            max_width = 160  # mm
+            ratio = min(max_width / image.width * 25.4 / 72, 1)  # convertir px a mm aprox
+            new_width = image.width * ratio
+            new_height = image.height * ratio
+
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
                 image.save(tmp.name, format="PNG")
-                pdf.image(tmp.name, w=pdf.w/2)
+                pdf.image(tmp.name, w=new_width)
                 pdf.ln(5)
-                os.unlink(tmp.name)  # borrar temporal después
+                os.unlink(tmp.name)
 
-        # Mostrar miniaturas en portal
+        # Miniaturas en portal
         st.markdown("### Fotos subidas")
         for foto in fotos:
             st.image(foto, width=200)
 
-    # ---- Guardar PDF ----
+    # Guardar PDF
     pdf_file = "Reporte_Exceso-Vicuna_Profesional.pdf"
     pdf.output(pdf_file)
-
     with open(pdf_file, "rb") as f:
         st.download_button("Descargar Reporte PDF", f, file_name=pdf_file, mime="application/pdf")
-
     st.success("Reporte generado correctamente")
