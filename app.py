@@ -9,15 +9,15 @@ st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 
 # ---- Estilos CSS ----
 st.markdown("""
-<style>
-body { background-color: #0E1117; color: #FAFAFA; font-family: Arial, sans-serif; }
-.stTextInput>div>div>input, .stTextArea>div>div>textarea, .stNumberInput>div>input { 
-    background-color: #1E1E1E !important; color: white !important; 
-    border: 1px solid #444444 !important; border-radius: 5px !important; padding: 5px !important;
-}
-.stButton>button { background-color: #6200EE; color: white; border-radius: 8px; padding: 0.8em 1.5em; font-weight: bold;}
-.stButton>button:hover { background-color: #3700B3; color: white; }
-.stForm { background-color: #121212; padding: 20px; border-radius: 10px; }
+<style>  
+body { background-color: #0E1117; color: #FAFAFA; font-family: Arial, sans-serif; }  
+.stTextInput>div>div>input, .stTextArea>div>div>textarea, .stNumberInput>div>input {   
+    background-color: #1E1E1E !important; color: white !important;   
+    border: 1px solid #444444 !important; border-radius: 5px !important; padding: 5px !important;  
+}  
+.stButton>button { background-color: #6200EE; color: white; border-radius: 8px; padding: 0.8em 1.5em; font-weight: bold;}  
+.stButton>button:hover { background-color: #3700B3; color: white; }  
+.stForm { background-color: #121212; padding: 20px; border-radius: 10px; }  
 </style>
 """, unsafe_allow_html=True)
 
@@ -36,21 +36,21 @@ with st.form("formulario"):
     patente = st.text_input("Dominio del vehículo")
     observaciones = st.text_area("Observaciones adicionales (opcional)")
 
-    fotos = st.file_uploader(
-        "Adjunte archivo(s) fotográfico(s) (máx. 30 MB cada uno)",
-        type=["jpg", "jpeg", "png"],
-        accept_multiple_files=True
-    )
+    fotos = st.file_uploader(  
+        "Adjunte archivo(s) fotográfico(s) (máx. 30 MB cada uno)",  
+        type=["jpg", "jpeg", "png"],  
+        accept_multiple_files=True  
+    )  
 
-    # Validar tamaño máximo
-    if fotos:
-        fotos_validas = []
-        for foto in fotos:
-            if foto.size > 30 * 1024 * 1024:
-                st.warning(f"El archivo {foto.name} supera 30 MB y no será incluido.")
-            else:
-                fotos_validas.append(foto)
-        fotos = fotos_validas
+    # Validar tamaño máximo  
+    if fotos:  
+        fotos_validas = []  
+        for foto in fotos:  
+            if foto.size > 30 * 1024 * 1024:  
+                st.warning(f"El archivo {foto.name} supera 30 MB y no será incluido.")  
+            else:  
+                fotos_validas.append(foto)  
+        fotos = fotos_validas  
 
     enviar = st.form_submit_button("Generar PDF")
 
@@ -61,86 +61,85 @@ if enviar:
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_font("Arial", "", 12)
 
-    # --- Encabezado HUARPE solo ---
-    pdf.set_font("Arial", "B", 48)  # Muy grande y gordita
-    pdf.set_text_color(0, 128, 0)   # Verde
-    texto = "HUARPE"
-    espaciado = 1.5  # mm entre letras
-    x_start = (pdf.w - len(texto) * 20) / 2  # centrado aproximado
-    pdf.set_y(10)  # margen superior
-    pdf.set_x(x_start)
-    for letra in texto:
-        pdf.cell(20, 20, letra, ln=0, align="C")
-        pdf.set_x(pdf.get_x() - (20 - espaciado))
-    pdf.ln(30)  # espacio debajo
+    # --- Encabezado corporativo final ---  
+    pdf.set_font("Arial", "B", 28)  # HUARPE SEGURIDAD grande  
+    pdf.set_text_color(0, 128, 0)   # Verde  
+    pdf.cell(0, 12, "HUARPE SEGURIDAD", ln=True, align="C")  
 
-    # --- Sección tradicional ---
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "Señores", ln=True)
-    pdf.cell(0, 10, "Seguridad Patrimonial", ln=True)
-    pdf.cell(0, 10, "Proyecto Vicuña", ln=True)
-    pdf.cell(0, 10, "S_/_D", ln=True)
-    pdf.ln(5)
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(0, 10, "Para informar, exceso de velocidad:", ln=True)
-    pdf.ln(5)
+    pdf.set_font("Arial", "B", 16)  # SEGURIDAD INTEGRAL  
+    pdf.cell(0, 10, "SEGURIDAD INTEGRAL", ln=True, align="C")  
 
-    # --- Tabla con colores alternos ---
-    pdf.set_font("Arial", "B", 12)
-    def add_row(label, value, fill=False):
-        pdf.set_font("Arial", "B", 11)
-        pdf.set_fill_color(230, 230, 230) if fill else pdf.set_fill_color(245, 245, 245)
-        pdf.cell(60, 10, label, border=1, fill=True)
-        pdf.set_font("Arial", "", 11)
-        pdf.cell(0, 10, str(value), border=1, ln=True, fill=True)
+    pdf.set_text_color(0, 0, 0)     # Negro para Patrulla Huarpe  
+    pdf.cell(0, 8, "Patrulla Huarpe", ln=True, align="C")  
+    pdf.ln(10)  
 
-    add_row("Hora del registro", f"{hora}Hs", fill=True)
-    add_row("Chofer", f"{chofer} (DNI: {dni})", fill=False)
-    add_row("Empresa", empresa, fill=True)
-    add_row("Sector", sector, fill=False)
-    add_row("Zona de velocidad", f"{zona} km/h", fill=True)
-    add_row("Exceso de velocidad", f"{exceso} km/h", fill=False)
-    add_row("Dominio del vehículo", patente, fill=True)
-    if observaciones.strip() != "":
-        add_row("Observaciones adicionales", observaciones, fill=False)
+    # --- Sección tradicional ---  
+    pdf.set_font("Arial", "B", 14)  
+    pdf.cell(0, 10, "Señores", ln=True)  
+    pdf.cell(0, 10, "Seguridad Patrimonial", ln=True)  
+    pdf.cell(0, 10, "Proyecto Vicuña", ln=True)  
+    pdf.cell(0, 10, "S_/_D", ln=True)  
+    pdf.ln(5)  
+    pdf.set_font("Arial", "", 12)  
+    pdf.cell(0, 10, "Para informar, exceso de velocidad:", ln=True)  
+    pdf.ln(5)  
 
-    pdf.ln(5)
-    pdf.multi_cell(0, 10, "Se remite a Staff de Seguridad Patrimonial.\nSe adjunta registro fotográfico.")
+    # --- Tabla con colores alternos ---  
+    pdf.set_font("Arial", "B", 12)  
+    def add_row(label, value, fill=False):  
+        pdf.set_font("Arial", "B", 11)  
+        pdf.set_fill_color(230, 230, 230) if fill else pdf.set_fill_color(245, 245, 245)  
+        pdf.cell(60, 10, label, border=1, fill=True)  
+        pdf.set_font("Arial", "", 11)  
+        pdf.cell(0, 10, str(value), border=1, ln=True, fill=True)  
 
-    # --- Fotos en 2 columnas ---
-    if fotos:
-        pdf.ln(5)
-        col_width = (pdf.w - 30) / 2
-        max_height_in_row = 0
-        for i, foto in enumerate(fotos):
-            image = Image.open(foto)
-            dpi = 96
-            width_mm = min(image.width * 25.4 / dpi, col_width)
-            height_mm = width_mm * image.height / image.width
-            max_height_in_row = max(max_height_in_row, height_mm)
+    add_row("Hora del registro", f"{hora}Hs", fill=True)  
+    add_row("Chofer", f"{chofer} (DNI: {dni})", fill=False)  
+    add_row("Empresa", empresa, fill=True)  
+    add_row("Sector", sector, fill=False)  
+    add_row("Zona de velocidad", f"{zona} km/h", fill=True)  
+    add_row("Exceso de velocidad", f"{exceso} km/h", fill=False)  
+    add_row("Dominio del vehículo", patente, fill=True)  
+    if observaciones.strip() != "":  
+        add_row("Observaciones adicionales", observaciones, fill=False)  
 
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
-                image.save(tmp.name, format="PNG")
-                x_pos = 15 if i % 2 == 0 else 15 + col_width
-                y_pos = pdf.get_y()
-                pdf.image(tmp.name, x=x_pos, y=y_pos, w=width_mm, h=height_mm)
-                os.unlink(tmp.name)
+    pdf.ln(5)  
+    pdf.multi_cell(0, 10, "Se remite a Staff de Seguridad Patrimonial.\nSe adjunta registro fotográfico.")  
 
-                if i % 2 == 1:
-                    pdf.ln(max_height_in_row + 5)
-                    max_height_in_row = 0
+    # --- Fotos en 2 columnas ---  
+    if fotos:  
+        pdf.ln(5)  
+        col_width = (pdf.w - 30) / 2  
+        max_height_in_row = 0  
+        for i, foto in enumerate(fotos):  
+            image = Image.open(foto)  
+            dpi = 96  
+            width_mm = min(image.width * 25.4 / dpi, col_width)  
+            height_mm = width_mm * image.height / image.width  
+            max_height_in_row = max(max_height_in_row, height_mm)  
 
-        if len(fotos) % 2 == 1:
-            pdf.ln(max_height_in_row + 5)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:  
+                image.save(tmp.name, format="PNG")  
+                x_pos = 15 if i % 2 == 0 else 15 + col_width  
+                y_pos = pdf.get_y()  
+                pdf.image(tmp.name, x=x_pos, y=y_pos, w=width_mm, h=height_mm)  
+                os.unlink(tmp.name)  
 
-        st.markdown("### Fotos subidas")
-        for foto in fotos:
-            st.image(foto, width=200)
+                if i % 2 == 1:  
+                    pdf.ln(max_height_in_row + 5)  
+                    max_height_in_row = 0  
 
-    # --- Guardar y descargar PDF ---
-    pdf_file = "Reporte_Exceso-Vicuna_Profesional.pdf"
-    pdf.output(pdf_file)
-    with open(pdf_file, "rb") as f:
-        st.download_button("Descargar Reporte PDF", f, file_name=pdf_file, mime="application/pdf")
+        if len(fotos) % 2 == 1:  
+            pdf.ln(max_height_in_row + 5)  
 
-    st.success("Reporte generado correctamente")
+        st.markdown("### Fotos subidas")  
+        for foto in fotos:  
+            st.image(foto, width=200)  
+
+    # --- Guardar y descargar PDF ---  
+    pdf_file = "Reporte_Exceso-Vicuna_Profesional.pdf"  
+    pdf.output(pdf_file)  
+    with open(pdf_file, "rb") as f:  
+        st.download_button("Descargar Reporte PDF", f, file_name=pdf_file, mime="application/pdf")  
+
+st.success("Reporte generado correctamente")
