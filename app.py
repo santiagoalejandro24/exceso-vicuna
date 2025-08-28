@@ -25,16 +25,12 @@ body { background-color: #0E1117; color: #FAFAFA; font-family: Arial, sans-serif
 
 st.title("Control de Exceso de Velocidad - Proyecto Vicuña")
 
-# Función para optimizar imágenes (ya incluida, pero revisada para el flujo de PDF)
-def optimizar_imagen(imagen_bytes, max_ancho=800):
+# Función para optimizar imágenes
+def optimizar_imagen(imagen_bytes):
     img = Image.open(imagen_bytes)
     # Convertir a RGB si es necesario (para compatibilidad con FPDF y evitar errores PNG/paleta)
     if img.mode == 'P':
         img = img.convert('RGB')
-    if img.width > max_ancho:
-        proporcion = max_ancho / img.width
-        nuevo_alto = int(img.height * proporcion)
-        img = img.resize((max_ancho, nuevo_alto), Image.Resampling.LANCZOS)
     return img
 
 # Función para validar datos del formulario
@@ -134,64 +130,52 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
 
     # --- Imágenes ---
     if fotos_files:
-        # Ancho disponible para cada columna (con márgenes de 15mm a cada lado y 5mm entre columnas)
-        ancho_pagina = pdf.w - 2 * pdf.l_margin
-        ancho_columna = (ancho_pagina - 5) / 2 # 5mm de espacio entre columnas
-        max_alto_imagen = 70 # Altura máxima para cada imagen para evitar que sean demasiado grandes
+        # Dimensiones máximas para las imágenes
+        MAX_IMAGE_WIDTH_MM = 30
+        MAX_IMAGE_HEIGHT_MM = 40
+        SPACE_BETWEEN_IMAGES_MM = 5
+        
+        # Posiciones iniciales
+        x_pos = pdf.l_margin
+        y_pos = pdf.get_y()
+        images_in_row = 0
 
-        # Lista para almacenar las rutas temporales de las imágenes
         temp_image_paths = []
-
         try:
-            for i, foto_file in enumerate(fotos_files):
-                img_bytes = foto_file.getvalue()
-                # Optimizar la imagen y guardarla temporalmente
-                img_pil = optimizar_imagen(img_bytes, max_ancho=int(ancho_columna * pdf.dpi / 25.4))
+            for foto_file in fotos_files:
+                img_pil = optimizar_imagen(foto_file)
                 
+                # Calcular dimensiones proporcionales
+                ancho_original, alto_original = img_pil.size
+                proporcion = min(MAX_IMAGE_WIDTH_MM / (ancho_original * 25.4 / pdf.dpi), 
+                                 MAX_IMAGE_HEIGHT_MM / (alto_original * 25.4 / pdf.dpi))
+                
+                ancho_final_mm = (ancho_original * 25.4 / pdf.dpi) * proporcion
+                alto_final_mm = (alto_original * 25.4 / pdf.dpi) * proporcion
+
+                # Verificar si cabe en la fila actual
+                if x_pos + ancho_final_mm + SPACE_BETWEEN_IMAGES_MM > (pdf.w - pdf.r_margin):
+                    # Si no cabe, saltar de línea
+                    x_pos = pdf.l_margin
+                    y_pos += MAX_IMAGE_HEIGHT_MM + 5
+                    images_in_row = 0
+                
+                # Verificar si cabe en la página
+                if y_pos + alto_final_mm > (pdf.h - pdf.b_margin):
+                    pdf.add_page()
+                    x_pos = pdf.l_margin
+                    y_pos = pdf.get_y()
+
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
                     img_pil.save(tmp.name, format="PNG")
                     temp_image_paths.append(tmp.name)
-
-            for i, temp_path in enumerate(temp_image_paths):
-                # Calcular dimensiones de la imagen en mm
-                img_pil = Image.open(temp_path)
-                ancho_px, alto_px = img_pil.size
                 
-                # Convertir de píxeles a mm (considerando una resolución típica de 96 DPI para imágenes web, si no se especifica otra)
-                # OJO: La conversión de px a mm depende de la DPI. FPDF asume 72 DPI por defecto, pero PIL maneja la imagen en px.
-                # Para evitar problemas, ajustamos el ancho en mm basándonos en el ancho de columna deseado.
-                # Y el alto se calcula proporcionalmente.
-                ancho_mm = ancho_columna
-                alto_mm = (alto_px / ancho_px) * ancho_mm
-
-                # Si la imagen es demasiado alta, la reescalamos manteniendo la proporción
-                if alto_mm > max_alto_imagen:
-                    alto_mm = max_alto_imagen
-                    ancho_mm = (ancho_px / alto_px) * alto_mm
-                    # Asegurarse de que no exceda el ancho de columna después de reescalar por alto
-                    if ancho_mm > ancho_columna:
-                        ancho_mm = ancho_columna
-                        alto_mm = (alto_px / ancho_px) * ancho_mm
-
-
-                # Determinar la posición X
-                if i % 2 == 0: # Imagen en la columna izquierda
-                    x_pos = pdf.l_margin
-                else: # Imagen en la columna derecha
-                    x_pos = pdf.l_margin + ancho_columna + 5 # 5mm de espacio entre columnas
+                pdf.image(tmp.name, x=x_pos, y=y_pos, w=ancho_final_mm, h=alto_final_mm)
                 
-                # Determinar la posición Y
-                # Verificar si hay espacio suficiente para la imagen actual
-                if pdf.get_y() + alto_mm > (pdf.h - pdf.b_margin):
-                    pdf.add_page() # Añadir nueva página si no hay espacio
+                x_pos += ancho_final_mm + SPACE_BETWEEN_IMAGES_MM
+                images_in_row += 1
 
-                y_pos = pdf.get_y()
-                pdf.image(temp_path, x=x_pos, y=y_pos, w=ancho_mm, h=alto_mm)
-
-                if i % 2 == 1: # Si es la segunda imagen de un par (o si es la última y hay un par)
-                    pdf.ln(alto_mm + 5) # Salto de línea después de un par de imágenes o la última imagen
-                elif i == len(temp_image_paths) - 1: # Si es la última imagen y es impar
-                    pdf.ln(alto_mm + 5) # Salto de línea para la imagen impar
+            pdf.ln(MAX_IMAGE_HEIGHT_MM + 5) # Salto de línea después de la última fila de imágenes
 
         finally:
             # Limpiar archivos temporales
@@ -205,45 +189,30 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
         pdf.cell(0, 6, "Firma del guardia:", 0, 0, 'L')
         
         # Guarda las coordenadas X e Y actuales para la caja de la firma
-        x_start_box = pdf.get_x() # Obtener la posición X actual después del texto
+        x_start_box = pdf.get_x()
         y_start_box = pdf.get_y()
 
         img_firma = Image.open(firma_file)
-        # Optimizamos la imagen de la firma también
-        img_firma_opt = optimizar_imagen(firma_file, max_ancho=int(60 * pdf.dpi / 25.4)) # Ancho deseado 60mm
+        # Optimizamos la imagen de la firma
+        ancho_firma_mm = 60
+        alto_firma_mm = 30
         
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
-            img_firma_opt.save(tmp_sig.name, format="PNG")
+            img_firma.save(tmp_sig.name, format="PNG")
             
-            ancho_firma_mm = 60 # Ancho fijo para la imagen de la firma
-            alto_firma_mm = 30 # Alto fijo para la imagen de la firma
-
-            # Dibujar el rectángulo primero
-            # Ajustar la posición X para que la caja esté a la derecha del texto "Firma del guardia:"
-            # El ancho de la caja es el ancho de la imagen más un pequeño padding
-            # El alto de la caja es el alto de la imagen más un pequeño padding
-            # x_box_pos = x_start_box - 2
-            # pdf.rect(x_box_pos, y_start_box - 2, ancho_firma_mm + 4, alto_firma_mm + 4)
-            
-            # Dibujar la imagen de la firma
-            # La imagen se superpone al texto de la firma, si se usa la misma línea
-            # Para ponerla a la derecha del texto, necesitas calcular la posición
             ancho_texto_firma = pdf.get_string_width("Firma del guardia:")
-            margen_izquierdo_firma_img = pdf.l_margin + ancho_texto_firma + 5 # 5mm de espacio después del texto
+            margen_izquierdo_firma_img = pdf.l_margin + ancho_texto_firma + 5 
             
-            # Asegurar que la firma no se superponga al texto y que quepa en la página
             if margen_izquierdo_firma_img + ancho_firma_mm > (pdf.w - pdf.r_margin):
-                 # Si no cabe a la derecha, la ponemos en una nueva línea centrada
-                 pdf.ln(8) # Baja una línea para evitar solapamiento con el texto
+                 pdf.ln(8) 
                  x_img = (pdf.w - ancho_firma_mm) / 2
                  pdf.image(tmp_sig.name, x=x_img, y=pdf.get_y() + 2, w=ancho_firma_mm, h=alto_firma_mm)
                  pdf.rect(x_img - 2, pdf.get_y(), ancho_firma_mm + 4, alto_firma_mm + 4)
                  pdf.ln(alto_firma_mm + 5)
             else:
-                 # Si cabe a la derecha del texto "Firma del guardia:"
                  pdf.image(tmp_sig.name, x=margen_izquierdo_firma_img, y=pdf.get_y() - 1, w=ancho_firma_mm, h=alto_firma_mm)
                  pdf.rect(margen_izquierdo_firma_img - 2, pdf.get_y() - 3, ancho_firma_mm + 4, alto_firma_mm + 4)
-                 pdf.ln(alto_firma_mm + 5) # Avanza después de la imagen y la caja
+                 pdf.ln(alto_firma_mm + 5)
 
             os.unlink(tmp_sig.name)
         
@@ -325,4 +294,4 @@ if enviar:
                 st.success("Reporte generado correctamente. ¡Haga clic en el botón de descarga!")
             except Exception as e:
                 st.error(f"Hubo un error al generar el PDF: {e}")
-
+    
