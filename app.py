@@ -82,7 +82,6 @@ def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
     pdf.cell(0, 6, "Datos del Acta", 0, 1, 'L')
     pdf.ln(1)
     pdf.set_font("Arial", "", 9)
-    # Se eliminan las líneas de Cant. Nro, Estado, Cantidad UF e Importe
     pdf.cell(50, 6, "Fecha y Hora:", 0, 0, 'L')
     pdf.set_font("Arial", "B", 9)
     pdf.cell(40, 6, f"{datetime.date.today().strftime('%d/%m/%Y')} {datos['hora']}", 0, 1, 'L')
@@ -93,10 +92,8 @@ def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
     pdf.set_font("Arial", "", 9)
     pdf.cell(50, 6, "Jurisdicción Constatación:", 0, 0, 'L')
     pdf.set_font("Arial", "B", 9)
-    pdf.cell(40, 6, datos['empresa'].upper(), 0, 1, 'L') # Cambio de 0,0 a 0,1 para salto de linea
+    pdf.cell(40, 6, datos['empresa'].upper(), 0, 1, 'L')
     pdf.ln(3)
-
-    # Se elimina la sección de Imputaciones completa
     
     pdf.set_font("Arial", "B", 10)
     pdf.cell(0, 6, "Datos del Presunto Infractor", 0, 1, 'L')
@@ -108,7 +105,7 @@ def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
     pdf.set_font("Arial", "", 9)
     pdf.cell(40, 6, "Nro:", 0, 0, 'L')
     pdf.set_font("Arial", "B", 9)
-    pdf.cell(30, 6, datos['dni'], 0, 1, 'L') # Se elimina el Genero
+    pdf.cell(30, 6, datos['dni'], 0, 1, 'L')
     pdf.set_font("Arial", "", 9)
     pdf.cell(40, 6, "Apellido y Nombre:", 0, 0, 'L')
     pdf.set_font("Arial", "B", 9)
@@ -121,11 +118,9 @@ def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
     pdf.set_font("Arial", "", 9)
     pdf.cell(40, 6, "Dominio:", 0, 0, 'L')
     pdf.set_font("Arial", "B", 9)
-    pdf.cell(30, 6, datos['patente'].upper(), 0, 1, 'L') # Se elimina el resto de la linea
+    pdf.cell(30, 6, datos['patente'].upper(), 0, 1, 'L')
     pdf.ln(3)
 
-    # Se elimina la sección de Especificaciones del Equipo de Constatación
-    
     pdf.set_font("Arial", "B", 10)
     pdf.cell(0, 6, "Imágenes de la Infracción", 0, 1, 'L')
     pdf.ln(2)
@@ -260,6 +255,4 @@ if enviar:
                 st.success("Reporte generado correctamente. ¡Haga clic en el botón de descarga!")
             except Exception as e:
                 st.error(f"Hubo un error al generar el PDF: {e}")
-
-
-
+    
