@@ -55,14 +55,22 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Arial", "", 10)
-
+    
     # --- Encabezado ---
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "HUARPE", 0, 1, 'C') # Cambiado de "HUARPE SEGURIDAD" a "HUARPE"
-    pdf.set_font("Arial", "B", 10)
-    #pdf.cell(0, 5, "SEGURIDAD INTEGRAL", 0, 1, 'C') # Eliminado
-    pdf.cell(0, 5, "Patrulla Huarpe", 0, 1, 'C')
+    # Configurar el color verde
+    pdf.set_text_color(0, 128, 0)
+    
+    # Texto "HUARPE"
+    pdf.set_font("Arial", "B", 20)
+    pdf.cell(0, 10, "HUARPE", 0, 1, 'C')
+    
+    # Texto "SEGURIDAD INTEGRAL"
+    # Para la fuente fina, se utiliza el estilo predeterminado sin negrita ('')
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 6, "SEGURIDAD INTEGRAL", 0, 1, 'C')
+
+    # Volver al color negro para el resto del documento
+    pdf.set_text_color(0, 0, 0)
     pdf.ln(10)
 
     # --- Detalles de la solicitud ---
@@ -135,7 +143,7 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
                 x_pos = 15 if i % 2 == 0 else 15 + col_width
                 y_pos = pdf.get_y()
                 pdf.image(tmp.name, x=x_pos, y=y_pos, w=width_mm, h=height_mm)
-                os.unlink(tmp.name) # Eliminar el archivo después de usarlo
+                os.unlink(tmp.name) 
 
                 if i % 2 == 1:
                     pdf.ln(max_height_in_row + 5)
@@ -231,3 +239,4 @@ if enviar:
                 st.success("Reporte generado correctamente. ¡Haga clic en el botón de descarga!")
             except Exception as e:
                 st.error(f"Hubo un error al generar el PDF: {e}")
+                
