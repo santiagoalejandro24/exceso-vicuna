@@ -1,3 +1,4 @@
 streamlit
-fpdf==1.7.2
-pip install streamlit-drawable-canvas
+fpdf
+Pillow
+streamlit-drawable-canvas
