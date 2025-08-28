@@ -1,5 +1,6 @@
 import streamlit as st
 from fpdf import FPDF
+from PIL import Image
 from io import BytesIO
 
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
@@ -45,18 +46,24 @@ with st.form("formulario"):
     observaciones = st.text_area("Observaciones adicionales (opcional)")
     
     fotos = st.file_uploader(
-        "Suba 2 o 3 fotos del registro (JPG/PNG, máximo 5MB cada una)",
+        "Adjunte archivo(s) fotográfico(s) (máx. 30 MB cada uno)",
         type=["jpg", "jpeg", "png"],
         accept_multiple_files=True
     )
-    
-    if fotos and len(fotos) > 3:
-        st.warning("Solo se permiten máximo 3 fotos. Se tomarán las primeras 3.")
-        fotos = fotos[:3]
+
+    # Validar tamaño máximo 30 MB por archivo
+    if fotos:
+        fotos_validas = []
+        for foto in fotos:
+            if foto.size > 30 * 1024 * 1024:
+                st.warning(f"El archivo {foto.name} supera 30 MB y no será incluido.")
+            else:
+                fotos_validas.append(foto)
+        fotos = fotos_validas
         
     enviar = st.form_submit_button("Generar PDF")
 
-# ---- Generar PDF corporativo ----
+# ---- Generar PDF corporativo con fotos ----
 if enviar:
     pdf = FPDF()
     pdf.add_page()
@@ -97,8 +104,18 @@ if enviar:
     pdf.ln(5)
     pdf.multi_cell(0, 10, "Se remite a Staff de Seguridad Patrimonial.\nSe adjunta registro fotográfico.")
 
-    # ---- Mostrar miniaturas de las fotos en portal ----
+    # ---- Insertar fotos en PDF ----
     if fotos:
+        pdf.ln(5)
+        for foto in fotos:
+            image = Image.open(foto)
+            image.thumbnail((180, 180))
+            buf = BytesIO()
+            image.save(buf, format="PNG")
+            pdf.image(buf, w=pdf.w/2)  # Ajusta ancho a la mitad de la página
+            pdf.ln(5)
+
+        # Mostrar miniaturas en portal
         st.markdown("### Fotos subidas")
         for foto in fotos:
             st.image(foto, width=200)
