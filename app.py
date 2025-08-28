@@ -3,25 +3,10 @@ from fpdf import FPDF
 from PIL import Image
 import tempfile
 import os
+from streamlit_drawable_canvas import st_canvas
 
 # ---- Configuración página ----
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
-
-# ---- Estilos CSS ----
-st.markdown("""
-<style>
-body { background-color: #0E1117; color: #FAFAFA; font-family: Arial, sans-serif; }
-.stTextInput>div>div>input, .stTextArea>div>div>textarea, .stNumberInput>div>input { 
-    background-color: #1E1E1E !important; color: white !important; 
-    border: 1px solid #444444 !important; border-radius: 5px !important; padding: 5px !important;
-}
-.stButton>button { background-color: #6200EE; color: white; border-radius: 8px; padding: 0.8em 1.5em; font-weight: bold;}
-.stButton>button:hover { background-color: #3700B3; color: white; }
-.stForm { background-color: #121212; padding: 20px; border-radius: 10px; }
-</style>
-""", unsafe_allow_html=True)
-
-st.title("Control de Exceso de Velocidad - Proyecto Vicuña")
 
 # ---- Formulario ----
 with st.form("formulario"):
@@ -35,6 +20,19 @@ with st.form("formulario"):
     exceso = st.number_input("Exceso de velocidad registrado (km/h)", min_value=0, max_value=300)
     patente = st.text_input("Dominio del vehículo")
     observaciones = st.text_area("Observaciones adicionales (opcional)")
+
+    # ---- Firma digital ----
+    st.markdown("### Firma del guardia")
+    canvas_result = st_canvas(
+        fill_color="rgba(0, 0, 0, 0)", 
+        stroke_width=2,
+        stroke_color="#FFFFFF",
+        background_color="#121212",
+        height=150,
+        width=400,
+        drawing_mode="freedraw",
+        key="canvas"
+    )
 
     fotos = st.file_uploader(
         "Adjunte archivo(s) fotográfico(s) (máx. 30 MB cada uno)",
@@ -73,18 +71,7 @@ if enviar:
         pdf.cell(0, 8, "Patrulla Huarpe", ln=True, align="C")
         pdf.ln(10)
 
-        # --- Encabezado tipo informe ---
-        pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 6, "Señores", ln=True)
-        pdf.cell(0, 6, "Seguridad Patrimonial", ln=True)
-        pdf.cell(0, 6, "Proyecto Vicuña", ln=True)
-        pdf.cell(0, 6, "S_/_D", ln=True)
-        pdf.ln(5)
-        pdf.set_font("Arial", "", 12)
-        pdf.cell(0, 10, "Para informar, exceso de velocidad:", ln=True)
-        pdf.ln(5)
-
-        # --- Tabla con colores suaves ---
+        # --- Tabla de datos ---
         pdf.set_font("Arial", "B", 12)
         def add_row(label, value, fill=False):
             pdf.set_font("Arial", "B", 11)
@@ -143,8 +130,20 @@ if enviar:
             for foto in fotos:
                 st.image(foto, width=200)
 
+        # --- Insertar firma digital ---
+        if canvas_result.image_data is not None:
+            # Convertir a imagen PIL
+            img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
+                img.save(tmp_sig.name, format="PNG")
+                pdf.ln(10)
+                pdf.set_font("Arial", "B", 12)
+                pdf.cell(0, 6, "Firma del guardia:", ln=True)
+                pdf.image(tmp_sig.name, x=pdf.get_x(), y=pdf.get_y(), w=60)
+                os.unlink(tmp_sig.name)
+
         # --- Guardar y descargar PDF ---
-        pdf_file = "Reporte_Exceso-Vicuna_Profesional.pdf"
+        pdf_file = "Reporte_Exceso-Vicuna_Firma.pdf"
         pdf.output(pdf_file)
         with open(pdf_file, "rb") as f:
             st.download_button("Descargar Reporte PDF", f, file_name=pdf_file, mime="application/pdf")
