@@ -60,13 +60,13 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
     # Configurar el color verde
     pdf.set_text_color(0, 128, 0)
     
-    # Texto "HUARPE" - Tamaño de fuente duplicado a 40
+    # Texto "HUARPE" - Tamaño de fuente 40
     pdf.set_font("Arial", "B", 40)
-    pdf.cell(0, 20, "HUARPE", 0, 1, 'C')
+    pdf.cell(0, 15, "HUARPE", 0, 1, 'C') # Reducido el espacio vertical de 20 a 15
     
-    # Texto "SEGURIDAD INTEGRAL" - Tamaño de fuente duplicado a 24
+    # Texto "SEGURIDAD INTEGRAL" - Tamaño de fuente 24
     pdf.set_font("Arial", "", 24)
-    pdf.cell(0, 12, "SEGURIDAD INTEGRAL", 0, 1, 'C')
+    pdf.cell(0, 10, "SEGURIDAD INTEGRAL", 0, 1, 'C') # Reducido el espacio vertical de 12 a 10
 
     # Volver al color negro para el resto del documento
     pdf.set_text_color(0, 0, 0)
@@ -247,4 +247,4 @@ if enviar:
                 st.success("Reporte generado correctamente. ¡Haga clic en el botón de descarga!")
             except Exception as e:
                 st.error(f"Hubo un error al generar el PDF: {e}")
-    
+                
