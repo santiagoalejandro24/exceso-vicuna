@@ -85,45 +85,51 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
     pdf.ln(3)
 
     # --- Tabla de datos ---
+    # Colores y fuentes para el nuevo diseño
     pdf.set_font("Arial", "B", 10)
-    pdf.set_fill_color(220, 220, 220)
+    pdf.set_fill_color(180, 180, 180) # Gris oscuro para el encabezado
+    pdf.set_text_color(0, 0, 0)
     
     # Encabezados de la tabla
-    pdf.cell(60, 8, "Hora del registro", 1, 0, 'L', 1)
-    pdf.set_font("Arial", "", 10)
-    pdf.cell(0, 8, datos['hora'], 1, 1, 'L')
+    # Sin bordes verticales, solo la línea inferior
+    pdf.cell(60, 8, "Hora del registro", 'B', 0, 'L', 1)
+    pdf.cell(0, 8, datos['hora'], 'B', 1, 'L', 0)
     
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(60, 8, "Chofer", 1, 0, 'L', 1)
+    # Filas con colores alternos para mejor legibilidad
     pdf.set_font("Arial", "", 10)
-    pdf.cell(0, 8, f"{datos['chofer']} (DNI: {datos['dni']})", 1, 1, 'L')
+    # Fila 1 (fondo blanco)
+    pdf.set_fill_color(255, 255, 255) 
+    pdf.cell(60, 8, "Chofer", 'B', 0, 'L', 1)
+    pdf.cell(0, 8, f"{datos['chofer']} (DNI: {datos['dni']})", 'B', 1, 'L', 0)
     
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(60, 8, "Empresa", 1, 0, 'L', 1)
-    pdf.set_font("Arial", "", 10)
-    pdf.cell(0, 8, datos['empresa'], 1, 1, 'L')
+    # Fila 2 (fondo gris claro)
+    pdf.set_fill_color(240, 240, 240)
+    pdf.cell(60, 8, "Empresa", 'B', 0, 'L', 1)
+    pdf.cell(0, 8, datos['empresa'], 'B', 1, 'L', 0)
     
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(60, 8, "Sector", 1, 0, 'L', 1)
-    pdf.set_font("Arial", "", 10)
-    pdf.cell(0, 8, datos['sector'], 1, 1, 'L')
+    # Fila 3 (fondo blanco)
+    pdf.set_fill_color(255, 255, 255) 
+    pdf.cell(60, 8, "Sector", 'B', 0, 'L', 1)
+    pdf.cell(0, 8, datos['sector'], 'B', 1, 'L', 0)
     
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(60, 8, "Zona de velocidad", 1, 0, 'L', 1)
-    pdf.set_font("Arial", "", 10)
-    pdf.cell(0, 8, f"{datos['zona']} km/h", 1, 1, 'L')
+    # Fila 4 (fondo gris claro)
+    pdf.set_fill_color(240, 240, 240)
+    pdf.cell(60, 8, "Zona de velocidad", 'B', 0, 'L', 1)
+    pdf.cell(0, 8, f"{datos['zona']} km/h", 'B', 1, 'L', 0)
     
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(60, 8, "Exceso de velocidad", 1, 0, 'L', 1)
-    pdf.set_font("Arial", "", 10)
-    pdf.cell(0, 8, f"{datos['exceso']} km/h", 1, 1, 'L')
+    # Fila 5 (fondo blanco)
+    pdf.set_fill_color(255, 255, 255) 
+    pdf.cell(60, 8, "Exceso de velocidad", 'B', 0, 'L', 1)
+    pdf.cell(0, 8, f"{datos['exceso']} km/h", 'B', 1, 'L', 0)
     
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(60, 8, "Dominio del vehículo", 1, 0, 'L', 1)
-    pdf.set_font("Arial", "", 10)
-    pdf.cell(0, 8, datos['patente'], 1, 1, 'L')
+    # Fila 6 (fondo gris claro)
+    pdf.set_fill_color(240, 240, 240)
+    pdf.cell(60, 8, "Dominio del vehículo", 'B', 0, 'L', 1)
+    pdf.cell(0, 8, datos['patente'], 'B', 1, 'L', 0)
     
     pdf.ln(10)
+
+    # --- Texto y Fotos ---
     pdf.set_font("Arial", "", 10)
     pdf.cell(0, 6, "Se remite a Staff de Seguridad Patrimonial.", 0, 1)
     pdf.cell(0, 6, "Se adjunta registro fotográfico.", 0, 1)
