@@ -25,9 +25,12 @@ body { background-color: #0E1117; color: #FAFAFA; font-family: Arial, sans-serif
 
 st.title("Control de Exceso de Velocidad - Proyecto Vicuña")
 
-# Función para optimizar imágenes
+# Función para optimizar imágenes (ya incluida, pero revisada para el flujo de PDF)
 def optimizar_imagen(imagen_bytes, max_ancho=800):
     img = Image.open(imagen_bytes)
+    # Convertir a RGB si es necesario (para compatibilidad con FPDF y evitar errores PNG/paleta)
+    if img.mode == 'P':
+        img = img.convert('RGB')
     if img.width > max_ancho:
         proporcion = max_ancho / img.width
         nuevo_alto = int(img.height * proporcion)
@@ -129,53 +132,121 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
     pdf.cell(0, 6, "Se adjunta registro fotográfico.", 0, 1)
     pdf.ln(10)
 
-    # --- Imágenes y firma (misma lógica que antes) ---
+    # --- Imágenes ---
     if fotos_files:
-        col_width = (pdf.w - 30) / 2
-        max_height_in_row = 0
-        for i, foto_file in enumerate(fotos_files):
-            image = Image.open(foto_file)
-            width_mm = min(image.width * 25.4 / 96, col_width)
-            height_mm = width_mm * image.height / image.width
-            max_height_in_row = max(max_height_in_row, height_mm)
+        # Ancho disponible para cada columna (con márgenes de 15mm a cada lado y 5mm entre columnas)
+        ancho_pagina = pdf.w - 2 * pdf.l_margin
+        ancho_columna = (ancho_pagina - 5) / 2 # 5mm de espacio entre columnas
+        max_alto_imagen = 70 # Altura máxima para cada imagen para evitar que sean demasiado grandes
 
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
-                image.save(tmp.name, format="PNG")
-                x_pos = 15 if i % 2 == 0 else 15 + col_width
+        # Lista para almacenar las rutas temporales de las imágenes
+        temp_image_paths = []
+
+        try:
+            for i, foto_file in enumerate(fotos_files):
+                img_bytes = foto_file.getvalue()
+                # Optimizar la imagen y guardarla temporalmente
+                img_pil = optimizar_imagen(img_bytes, max_ancho=int(ancho_columna * pdf.dpi / 25.4))
+                
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                    img_pil.save(tmp.name, format="PNG")
+                    temp_image_paths.append(tmp.name)
+
+            for i, temp_path in enumerate(temp_image_paths):
+                # Calcular dimensiones de la imagen en mm
+                img_pil = Image.open(temp_path)
+                ancho_px, alto_px = img_pil.size
+                
+                # Convertir de píxeles a mm (considerando una resolución típica de 96 DPI para imágenes web, si no se especifica otra)
+                # OJO: La conversión de px a mm depende de la DPI. FPDF asume 72 DPI por defecto, pero PIL maneja la imagen en px.
+                # Para evitar problemas, ajustamos el ancho en mm basándonos en el ancho de columna deseado.
+                # Y el alto se calcula proporcionalmente.
+                ancho_mm = ancho_columna
+                alto_mm = (alto_px / ancho_px) * ancho_mm
+
+                # Si la imagen es demasiado alta, la reescalamos manteniendo la proporción
+                if alto_mm > max_alto_imagen:
+                    alto_mm = max_alto_imagen
+                    ancho_mm = (ancho_px / alto_px) * alto_mm
+                    # Asegurarse de que no exceda el ancho de columna después de reescalar por alto
+                    if ancho_mm > ancho_columna:
+                        ancho_mm = ancho_columna
+                        alto_mm = (alto_px / ancho_px) * ancho_mm
+
+
+                # Determinar la posición X
+                if i % 2 == 0: # Imagen en la columna izquierda
+                    x_pos = pdf.l_margin
+                else: # Imagen en la columna derecha
+                    x_pos = pdf.l_margin + ancho_columna + 5 # 5mm de espacio entre columnas
+                
+                # Determinar la posición Y
+                # Verificar si hay espacio suficiente para la imagen actual
+                if pdf.get_y() + alto_mm > (pdf.h - pdf.b_margin):
+                    pdf.add_page() # Añadir nueva página si no hay espacio
+
                 y_pos = pdf.get_y()
-                pdf.image(tmp.name, x=x_pos, y=y_pos, w=width_mm, h=height_mm)
-                os.unlink(tmp.name) 
+                pdf.image(temp_path, x=x_pos, y=y_pos, w=ancho_mm, h=alto_mm)
 
-                if i % 2 == 1:
-                    pdf.ln(max_height_in_row + 5)
-                    max_height_in_row = 0
+                if i % 2 == 1: # Si es la segunda imagen de un par (o si es la última y hay un par)
+                    pdf.ln(alto_mm + 5) # Salto de línea después de un par de imágenes o la última imagen
+                elif i == len(temp_image_paths) - 1: # Si es la última imagen y es impar
+                    pdf.ln(alto_mm + 5) # Salto de línea para la imagen impar
 
-            if len(fotos_files) % 2 == 1:
-                pdf.ln(max_height_in_row + 5)
+        finally:
+            # Limpiar archivos temporales
+            for p in temp_image_paths:
+                os.unlink(p)
 
+    # --- Firma ---
     if firma_file:
-        pdf.ln(10)
-        # Imprime el texto de la firma en el lado izquierdo
+        pdf.ln(10) # Espacio antes de la firma
         pdf.set_font("Arial", "B", 12)
         pdf.cell(0, 6, "Firma del guardia:", 0, 0, 'L')
         
-        # Guarda las coordenadas X e Y actuales
-        x_start = pdf.get_x()
-        y_start = pdf.get_y()
+        # Guarda las coordenadas X e Y actuales para la caja de la firma
+        x_start_box = pdf.get_x() # Obtener la posición X actual después del texto
+        y_start_box = pdf.get_y()
 
-        img = Image.open(firma_file)
+        img_firma = Image.open(firma_file)
+        # Optimizamos la imagen de la firma también
+        img_firma_opt = optimizar_imagen(firma_file, max_ancho=int(60 * pdf.dpi / 25.4)) # Ancho deseado 60mm
+        
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
-            img.save(tmp_sig.name, format="PNG")
+            img_firma_opt.save(tmp_sig.name, format="PNG")
             
-            # Dibuja la caja y la imagen en la misma línea
-            pdf.rect(x_start - 2, y_start - 2, 60 + 4, 30 + 4)
-            pdf.image(tmp_sig.name, x=x_start, y=y_start, w=60, h=30)
+            ancho_firma_mm = 60 # Ancho fijo para la imagen de la firma
+            alto_firma_mm = 30 # Alto fijo para la imagen de la firma
+
+            # Dibujar el rectángulo primero
+            # Ajustar la posición X para que la caja esté a la derecha del texto "Firma del guardia:"
+            # El ancho de la caja es el ancho de la imagen más un pequeño padding
+            # El alto de la caja es el alto de la imagen más un pequeño padding
+            # x_box_pos = x_start_box - 2
+            # pdf.rect(x_box_pos, y_start_box - 2, ancho_firma_mm + 4, alto_firma_mm + 4)
             
+            # Dibujar la imagen de la firma
+            # La imagen se superpone al texto de la firma, si se usa la misma línea
+            # Para ponerla a la derecha del texto, necesitas calcular la posición
+            ancho_texto_firma = pdf.get_string_width("Firma del guardia:")
+            margen_izquierdo_firma_img = pdf.l_margin + ancho_texto_firma + 5 # 5mm de espacio después del texto
+            
+            # Asegurar que la firma no se superponga al texto y que quepa en la página
+            if margen_izquierdo_firma_img + ancho_firma_mm > (pdf.w - pdf.r_margin):
+                 # Si no cabe a la derecha, la ponemos en una nueva línea centrada
+                 pdf.ln(8) # Baja una línea para evitar solapamiento con el texto
+                 x_img = (pdf.w - ancho_firma_mm) / 2
+                 pdf.image(tmp_sig.name, x=x_img, y=pdf.get_y() + 2, w=ancho_firma_mm, h=alto_firma_mm)
+                 pdf.rect(x_img - 2, pdf.get_y(), ancho_firma_mm + 4, alto_firma_mm + 4)
+                 pdf.ln(alto_firma_mm + 5)
+            else:
+                 # Si cabe a la derecha del texto "Firma del guardia:"
+                 pdf.image(tmp_sig.name, x=margen_izquierdo_firma_img, y=pdf.get_y() - 1, w=ancho_firma_mm, h=alto_firma_mm)
+                 pdf.rect(margen_izquierdo_firma_img - 2, pdf.get_y() - 3, ancho_firma_mm + 4, alto_firma_mm + 4)
+                 pdf.ln(alto_firma_mm + 5) # Avanza después de la imagen y la caja
+
             os.unlink(tmp_sig.name)
         
-        # Avanza a la siguiente línea después de la imagen
-        pdf.ln(40)
-
     return pdf.output(dest='S').encode('latin1')
 
 # ---- Contenedor del formulario ----
@@ -200,8 +271,9 @@ with st.container():
         st.markdown("### Firma del guardia (subir imagen .png o .jpg)")
         firma = st.file_uploader("Subir imagen de firma", type=["png", "jpg", "jpeg"], key="firma_uploader")
 
+        st.markdown("### Adjuntar fotografías del incidente (máx. 30 MB cada una)")
         fotos = st.file_uploader(
-            "Adjunte archivo(s) fotográfico(s) (máx. 30 MB cada uno)",
+            "Seleccionar archivo(s) de imagen",
             type=["jpg", "jpeg", "png"],
             accept_multiple_files=True,
             key="fotos_uploader"
@@ -239,14 +311,18 @@ if enviar:
             try:
                 pdf_bytes = generar_pdf_formato_nuevo(datos_formulario, firma, fotos_validas)
                 
+                # Nombre de archivo más descriptivo
+                fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                nombre_pdf = f"Reporte_Exceso_Vicuña_{datos['patente']}_{fecha_actual}.pdf"
+
                 st.download_button(
                     label="Descargar Reporte PDF",
                     data=pdf_bytes,
-                    file_name="Reporte_Exceso_Vicuña.pdf",
+                    file_name=nombre_pdf,
                     mime="application/pdf"
                 )
                 
                 st.success("Reporte generado correctamente. ¡Haga clic en el botón de descarga!")
             except Exception as e:
                 st.error(f"Hubo un error al generar el PDF: {e}")
-            
+
