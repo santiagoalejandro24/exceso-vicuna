@@ -2,7 +2,6 @@ import streamlit as st
 from fpdf import FPDF
 from PIL import Image
 from datetime import datetime
-import io
 
 # ---- Configuración página ----
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
@@ -155,7 +154,7 @@ if enviar:
             for foto in fotos:
                 st.image(foto, width=200)
 
-        # --- Guardar PDF en memoria con UTF-8 ---
+        # --- Guardar PDF en memoria con UTF-8 (FPDF2) ---
         pdf_bytes = pdf.output(dest='S').encode('utf-8')
 
         st.download_button(
