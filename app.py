@@ -59,9 +59,9 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
 
     # --- Encabezado ---
     pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "HUARPE SEGURIDAD", 0, 1, 'C')
+    pdf.cell(0, 10, "HUARPE", 0, 1, 'C') # Cambiado de "HUARPE SEGURIDAD" a "HUARPE"
     pdf.set_font("Arial", "B", 10)
-    pdf.cell(0, 5, "SEGURIDAD INTEGRAL", 0, 1, 'C')
+    #pdf.cell(0, 5, "SEGURIDAD INTEGRAL", 0, 1, 'C') # Eliminado
     pdf.cell(0, 5, "Patrulla Huarpe", 0, 1, 'C')
     pdf.ln(10)
 
