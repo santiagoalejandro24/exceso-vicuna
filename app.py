@@ -1,9 +1,10 @@
 import streamlit as st
 from fpdf import FPDF
+from io import BytesIO
 
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 
-# ---- Estilos CSS para portal profesional ----
+# ---- Estilos CSS profesionales ----
 st.markdown("""
     <style>
         body { background-color: #0E1117; color: #FAFAFA; font-family: Arial, sans-serif; }
@@ -42,6 +43,17 @@ with st.form("formulario"):
     exceso = st.number_input("Exceso de velocidad registrado (km/h)", min_value=0, max_value=300)
     patente = st.text_input("Dominio del vehículo")
     observaciones = st.text_area("Observaciones adicionales (opcional)")
+    
+    fotos = st.file_uploader(
+        "Suba 2 o 3 fotos del registro (JPG/PNG, máximo 5MB cada una)",
+        type=["jpg", "jpeg", "png"],
+        accept_multiple_files=True
+    )
+    
+    if fotos and len(fotos) > 3:
+        st.warning("Solo se permiten máximo 3 fotos. Se tomarán las primeras 3.")
+        fotos = fotos[:3]
+        
     enviar = st.form_submit_button("Generar PDF")
 
 # ---- Generar PDF corporativo ----
@@ -71,7 +83,6 @@ if enviar:
         pdf.set_font("Arial", "", 11)
         pdf.cell(0, 10, str(value), border=1, ln=True, fill=True)
 
-    # Alternando colores
     add_row("Hora del registro", f"{hora}Hs", fill=True)
     add_row("Chofer", f"{chofer} (DNI: {dni})", fill=False)
     add_row("Empresa", empresa, fill=True)
@@ -86,13 +97,14 @@ if enviar:
     pdf.ln(5)
     pdf.multi_cell(0, 10, "Se remite a Staff de Seguridad Patrimonial.\nSe adjunta registro fotográfico.")
 
-    # Pie de página corporativo
-    pdf.set_y(-30)
-    pdf.set_font("Arial", "I", 10)
-    pdf.cell(0, 10, "Reporte generado automáticamente - Proyecto Vicuña", ln=True, align="C")
+    # ---- Mostrar miniaturas de las fotos en portal ----
+    if fotos:
+        st.markdown("### Fotos subidas")
+        for foto in fotos:
+            st.image(foto, width=200)
 
-    # Guardar PDF
-    pdf_file = "Reporte_Exceso_Vicuna_Profesional.pdf"
+    # ---- Guardar PDF ----
+    pdf_file = "Reporte_Exceso-Vicuna_Profesional.pdf"
     pdf.output(pdf_file)
 
     with open(pdf_file, "rb") as f:
