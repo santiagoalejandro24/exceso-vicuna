@@ -62,12 +62,14 @@ if enviar:
     pdf.set_font("Arial", "", 12)
 
     # --- Encabezado corporativo ---
-    pdf.set_font("Arial", "B", 18)
-    pdf.set_text_color(0, 128, 0)  # Verde
+    pdf.set_font("Arial", "B", 22)  # Más gordito para HUARPE SEGURIDAD
+    pdf.set_text_color(0, 128, 0)   # Verde
     pdf.cell(0, 10, "HUARPE SEGURIDAD", ln=True, align="C")
-    pdf.set_text_color(0, 0, 0)  # Negro para subtítulos
+
     pdf.set_font("Arial", "B", 14)
     pdf.cell(0, 8, "Seguridad Integral", ln=True, align="C")
+
+    pdf.set_text_color(0, 0, 0)     # Negro para Patrulla Huarpe
     pdf.cell(0, 8, "Patrulla Huarpe", ln=True, align="C")
     pdf.ln(10)
 
@@ -107,7 +109,7 @@ if enviar:
     # --- Fotos en 2 columnas ---
     if fotos:
         pdf.ln(5)
-        col_width = (pdf.w - 30) / 2  # ancho de cada columna
+        col_width = (pdf.w - 30) / 2
         max_height_in_row = 0
         for i, foto in enumerate(fotos):
             image = Image.open(foto)
