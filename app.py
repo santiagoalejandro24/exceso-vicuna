@@ -3,12 +3,11 @@ from fpdf import FPDF
 from PIL import Image
 import tempfile
 import os
-import io
 
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 st.title("Reporte de Exceso de Velocidad - Proyecto Vicuña")
 
-# ---- Formulario compacto estilo oficial ----
+# ---- Formulario oficial ----
 with st.form("formulario_reporte"):
     st.subheader("Datos del Suceso")
     nombre = st.text_input("Nombre de la persona")
@@ -28,7 +27,7 @@ with st.form("formulario_reporte"):
 
     st.subheader("Firma del Guardia")
     firma_guardia = st.file_uploader(
-        "Subir imagen de la firma del guardia (png, jpg)",
+        "Subir imagen de la firma del guardia (png, jpg, jpeg)",
         type=["png","jpg","jpeg"]
     )
     nombre_guardia = st.text_input("Nombre del Guardia")
@@ -41,7 +40,7 @@ if enviar:
     pdf = FPDF()
     pdf.add_page()
 
-    # --- Encabezado corporativo ---
+    # --- Encabezado ---
     pdf.set_font("Arial", "B", 20)
     pdf.set_text_color(0, 50, 0)
     pdf.cell(0, 15, "HUARPE SEGURIDAD", ln=True, align="C")
@@ -50,7 +49,7 @@ if enviar:
     pdf.cell(0, 10, "Reporte de Exceso de Velocidad - Proyecto Vicuña", ln=True, align="C")
     pdf.ln(5)
 
-    # --- Datos en cuadros con colores sobrios ---
+    # --- Datos en cuadros ---
     def add_field(label, value, fill_color=(245,245,245)):
         pdf.set_fill_color(*fill_color)
         pdf.set_draw_color(150,150,150)
@@ -69,7 +68,7 @@ if enviar:
     add_field("Dominio del vehículo", dominio, fill_color=(250,250,250))
     pdf.ln(5)
 
-    # --- Fotos de evidencia ---
+    # --- Fotos ---
     if fotos:
         pdf.set_font("Arial", "B", 12)
         pdf.cell(0, 10, "Evidencias fotográficas:", ln=True)
@@ -82,11 +81,12 @@ if enviar:
         img_count = 0
 
         for foto in fotos:
+            image = Image.open(foto)
+            # Guardar temporalmente como PNG válido
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-                tmpfile.write(foto.read())
+                image.save(tmpfile.name, format="PNG")
                 tmpfile_path = tmpfile.name
 
-            image = Image.open(tmpfile_path)
             width, height = image.size
             ratio = min(max_width / width, max_height / height)
             w = int(width * ratio)
@@ -116,8 +116,9 @@ if enviar:
         pdf.set_line_width(0.6)
         pdf.rect(x=x_pos, y=y_pos, w=60, h=40)
 
+        image = Image.open(firma_guardia)
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-            tmpfile.write(firma_guardia.read())
+            image.save(tmpfile.name, format="PNG")
             tmpfile_path = tmpfile.name
 
         pdf.image(tmpfile_path, x=x_pos + 2, y=y_pos + 2, w=56)
