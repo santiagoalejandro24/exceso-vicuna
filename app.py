@@ -5,80 +5,76 @@ from PIL import Image
 import io
 import tempfile
 import os
-import datetime
 
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 st.title("Reporte de Exceso de Velocidad - Proyecto Vicuña")
 
-# ---- Formulario ----
-hora = st.text_input("Hora del registro", value=datetime.datetime.now().strftime("%H:%M"))
-chofer = st.text_input("Nombre del Chofer")
-dni = st.text_input("DNI del Chofer")
-empresa = st.text_input("Empresa", value="Vicuña")
-sector = st.text_input("Sector")
-zona_vel = st.number_input("Zona de velocidad (km/h)", min_value=0, step=1)
-exceso_vel = st.number_input("Exceso de velocidad (km/h)", min_value=0, step=1)
-dominio = st.text_input("Dominio del vehículo")
+# ---- Formulario compacto estilo oficial ----
+with st.form("formulario_reporte"):
+    st.subheader("Datos del Suceso")
+    nombre = st.text_input("Nombre de la persona")
+    dni = st.text_input("DNI")
+    empresa = st.text_input("Empresa")
+    sector = st.text_input("Sector donde se hizo el suceso")
+    limite_vel = st.number_input("Límite de velocidad (km/h)", min_value=0, step=1)
+    exceso_vel = st.number_input("Exceso de velocidad (km/h)", min_value=0, step=1)
+    dominio = st.text_input("Dominio del vehículo")
 
-# Fotos de evidencia
-fotos = st.file_uploader(
-    "Subir imágenes de evidencia",
-    type=["png", "jpg", "jpeg"],
-    accept_multiple_files=True
-)
+    st.subheader("Evidencia fotográfica")
+    fotos = st.file_uploader(
+        "Subir imágenes (png, jpg, jpeg) - max 2 por fila",
+        type=["png","jpg","jpeg"],
+        accept_multiple_files=True
+    )
 
-# Firma digital
-st.write("### Firma del Guardia")
-canvas_result = st_canvas(
-    fill_color="rgba(255, 255, 255, 0)",
-    stroke_width=2,
-    stroke_color="#000000",
-    background_color="#FFFFFF",
-    height=150,
-    width=400,
-    drawing_mode="freedraw",
-    key="canvas"
-)
+    st.subheader("Firma del Guardia")
+    canvas_result = st_canvas(
+        fill_color="rgba(255, 255, 255, 0)",
+        stroke_width=2,
+        stroke_color="#000000",
+        background_color="#FFFFFF",
+        height=150,
+        width=400,
+        drawing_mode="freedraw",
+        key="canvas"
+    )
+    nombre_guardia = st.text_input("Nombre del Guardia")
+    dni_guardia = st.text_input("DNI del Guardia")
 
-# Nombre y DNI del guardia
-nombre_guardia = st.text_input("Nombre del Guardia")
-dni_guardia = st.text_input("DNI del Guardia")
+    enviar = st.form_submit_button("Generar PDF")
 
 # ---- Generar PDF ----
-if st.button("Generar PDF"):
+if enviar:
     pdf = FPDF()
     pdf.add_page()
 
     # --- Encabezado corporativo ---
-    logo_path = "logo_huarpe.png"  # Coloque el logo en la misma carpeta
-    if os.path.exists(logo_path):
-        pdf.image(logo_path, x=10, y=8, w=30)
     pdf.set_font("Arial", "B", 20)
-    pdf.set_text_color(0, 50, 0)  # verde corporativo
+    pdf.set_text_color(0, 50, 0)
     pdf.cell(0, 15, "HUARPE SEGURIDAD", ln=True, align="C")
     pdf.set_font("Arial", "B", 14)
     pdf.set_text_color(0,0,0)
     pdf.cell(0, 10, "Reporte de Exceso de Velocidad - Proyecto Vicuña", ln=True, align="C")
     pdf.ln(5)
 
-    # --- Datos en cuadros con borde grueso y sombreado ---
+    # --- Datos en cuadros con colores sobrios ---
     def add_field(label, value, fill_color=(245,245,245)):
         pdf.set_fill_color(*fill_color)
-        pdf.set_draw_color(100,100,100)  # borde gris
-        pdf.set_line_width(0.5)          # borde más grueso
+        pdf.set_draw_color(150,150,150)
+        pdf.set_line_width(0.5)
         pdf.set_font("Arial", "B", 11)
         pdf.cell(60, 10, label, border=1, fill=True)
         pdf.set_font("Arial", "", 11)
         pdf.cell(0, 10, str(value), border=1, fill=True, ln=True)
 
-    add_field("Hora del registro", f"{hora}Hs", fill_color=(240,240,240))
-    add_field("Chofer", f"{chofer} (DNI: {dni})")
-    add_field("Empresa", empresa, fill_color=(240,240,240))
-    add_field("Sector", sector)
-    add_field("Zona de velocidad", f"{zona_vel} km/h", fill_color=(240,240,240))
+    # Colores alternos suaves: blanco y gris muy claro
+    add_field("Nombre de la persona", nombre, fill_color=(250,250,250))
+    add_field("DNI", dni)
+    add_field("Empresa", empresa, fill_color=(250,250,250))
+    add_field("Sector donde se hizo el suceso", sector)
+    add_field("Límite de velocidad", f"{limite_vel} km/h", fill_color=(250,250,250))
     add_field("Exceso de velocidad", f"{exceso_vel} km/h")
-    add_field("Dominio del vehículo", dominio, fill_color=(240,240,240))
-
+    add_field("Dominio del vehículo", dominio, fill_color=(250,250,250))
     pdf.ln(5)
 
     # --- Fotos de evidencia ---
@@ -118,13 +114,13 @@ if st.button("Generar PDF"):
 
         pdf.ln(10)
 
-    # --- Recuadro de firma al final a la derecha ---
+    # --- Firma digital a la derecha ---
     if canvas_result.image_data is not None:
         pdf.set_y(-60)
         x_pos = pdf.w - 70
         y_pos = pdf.get_y()
 
-        pdf.set_draw_color(50,50,50)
+        pdf.set_draw_color(100,100,100)
         pdf.set_line_width(0.6)
         pdf.rect(x=x_pos, y=y_pos, w=60, h=40)
 
@@ -143,6 +139,6 @@ if st.button("Generar PDF"):
     st.download_button(
         "📄 Descargar PDF",
         data=pdf_output,
-        file_name="Reporte_Exceso_Vicuña.pdf",
+        file_name="Reporte_Exceso-Vicuña.pdf",
         mime="application/pdf"
-    )
+        )
