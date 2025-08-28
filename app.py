@@ -8,6 +8,22 @@ from streamlit_drawable_canvas import st_canvas
 # ---- Configuración página ----
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 
+# ---- Estilos CSS ----
+st.markdown("""
+<style>
+body { background-color: #0E1117; color: #FAFAFA; font-family: Arial, sans-serif; }
+.stTextInput>div>div>input, .stTextArea>div>div>textarea, .stNumberInput>div>input { 
+    background-color: #1E1E1E !important; color: white !important; 
+    border: 1px solid #444444 !important; border-radius: 5px !important; padding: 5px !important;
+}
+.stButton>button { background-color: #6200EE; color: white; border-radius: 8px; padding: 0.8em 1.5em; font-weight: bold;}
+.stButton>button:hover { background-color: #3700B3; color: white; }
+.stForm { background-color: #121212; padding: 20px; border-radius: 10px; }
+</style>
+""", unsafe_allow_html=True)
+
+st.title("Control de Exceso de Velocidad - Proyecto Vicuña")
+
 # ---- Formulario ----
 with st.form("formulario"):
     st.markdown("### Complete los datos del registro")
@@ -21,10 +37,10 @@ with st.form("formulario"):
     patente = st.text_input("Dominio del vehículo")
     observaciones = st.text_area("Observaciones adicionales (opcional)")
 
-    # ---- Firma digital ----
-    st.markdown("### Firma del guardia")
+    # ---- Canvas para firma ----
+    st.markdown("### Firma del guardia (dibuje con el mouse o dedo)")
     canvas_result = st_canvas(
-        fill_color="rgba(0, 0, 0, 0)", 
+        fill_color="rgba(0, 0, 0, 0)",
         stroke_width=2,
         stroke_color="#FFFFFF",
         background_color="#121212",
@@ -71,7 +87,18 @@ if enviar:
         pdf.cell(0, 8, "Patrulla Huarpe", ln=True, align="C")
         pdf.ln(10)
 
-        # --- Tabla de datos ---
+        # --- Encabezado tipo informe ---
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 6, "Señores", ln=True)
+        pdf.cell(0, 6, "Seguridad Patrimonial", ln=True)
+        pdf.cell(0, 6, "Proyecto Vicuña", ln=True)
+        pdf.cell(0, 6, "S_/_D", ln=True)
+        pdf.ln(5)
+        pdf.set_font("Arial", "", 12)
+        pdf.cell(0, 10, "Para informar, exceso de velocidad:", ln=True)
+        pdf.ln(5)
+
+        # --- Tabla con colores suaves ---
         pdf.set_font("Arial", "B", 12)
         def add_row(label, value, fill=False):
             pdf.set_font("Arial", "B", 11)
@@ -130,16 +157,25 @@ if enviar:
             for foto in fotos:
                 st.image(foto, width=200)
 
-        # --- Insertar firma digital ---
+        # --- Insertar firma digital alineada a la derecha con marco ---
         if canvas_result.image_data is not None:
-            # Convertir a imagen PIL
             img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
                 img.save(tmp_sig.name, format="PNG")
                 pdf.ln(10)
                 pdf.set_font("Arial", "B", 12)
+                # Dibujar título
                 pdf.cell(0, 6, "Firma del guardia:", ln=True)
-                pdf.image(tmp_sig.name, x=pdf.get_x(), y=pdf.get_y(), w=60)
+                # Guardar posición para el marco
+                x_start = pdf.get_x() + 100  # Alinea a la derecha
+                y_start = pdf.get_y()
+                width_sig = 60
+                height_sig = 30
+                # Dibujar rectángulo (marco)
+                pdf.rect(x_start - 2, y_start - 2, width_sig + 4, height_sig + 4)
+                # Insertar imagen dentro del marco
+                pdf.image(tmp_sig.name, x=x_start, y=y_start, w=width_sig, h=height_sig)
+                pdf.ln(height_sig + 10)
                 os.unlink(tmp_sig.name)
 
         # --- Guardar y descargar PDF ---
