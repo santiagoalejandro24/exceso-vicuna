@@ -51,136 +51,112 @@ def validar_formulario(hora, chofer, dni, empresa, sector, patente, zona, exceso
     return True, ""
 
 # --- Función para generar el PDF y devolver sus bytes ---
-def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
+def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_font("Arial", "", 10)
 
     # --- Encabezado ---
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, "HUARPE SEGURIDAD", 0, 1, 'C')
     pdf.set_font("Arial", "B", 10)
-    pdf.set_xy(15, 15)
-    pdf.multi_cell(30, 4, "PATRULLA\nBATIDERO", 0, 'L')
-    
-    pdf.set_font("Arial", "B", 10)
-    pdf.set_xy(50, 15)
-    pdf.multi_cell(100, 4, "HUARPE SEGURIDAD", 0, 'C')
+    pdf.cell(0, 5, "SEGURIDAD INTEGRAL", 0, 1, 'C')
+    pdf.cell(0, 5, "Patrulla Huarpe", 0, 1, 'C')
+    pdf.ln(10)
 
-    pdf.set_font("Arial", "B", 10)
-    pdf.set_xy(165, 15)
-    pdf.multi_cell(30, 4, "PROYECTO\nVICUÑA", 0, 'R')
-    pdf.ln(15)
-
-    # --- Sección: EXCESO DE VELOCIDAD ---
-    pdf.set_fill_color(220, 220, 220)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 8, "EXCESO DE VELOCIDAD", 1, 1, 'C', 1)
-    
+    # --- Detalles de la solicitud ---
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(40, 6, "Señores", 0, 1)
+    pdf.cell(40, 6, "Seguridad Patrimonial", 0, 1)
+    pdf.cell(40, 6, "Proyecto Vicuña", 0, 1)
+    pdf.cell(40, 6, "S_/_D", 0, 1)
     pdf.ln(5)
-
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(0, 6, "Datos del Acta", 0, 1, 'L')
-    pdf.ln(1)
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(50, 6, "Fecha y Hora:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(40, 6, f"{datetime.date.today().strftime('%d/%m/%Y')} {datos['hora']}", 0, 1, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(50, 6, "Lugar de la Infracción:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 6, f"{datos['sector']}", 0, 1, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(50, 6, "Jurisdicción Constatación:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(40, 6, datos['empresa'].upper(), 0, 1, 'L')
+    pdf.cell(0, 6, "Para informar, exceso de velocidad:", 0, 1)
     pdf.ln(3)
+
+    # --- Tabla de datos ---
+    pdf.set_font("Arial", "B", 10)
+    pdf.set_fill_color(220, 220, 220)
+    
+    # Encabezados de la tabla
+    pdf.cell(60, 8, "Hora del registro", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, datos['hora'], 1, 1, 'L')
     
     pdf.set_font("Arial", "B", 10)
-    pdf.cell(0, 6, "Datos del Presunto Infractor", 0, 1, 'L')
-    pdf.ln(1)
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(40, 6, "Tipo Documento:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(30, 6, "DNI", 0, 0, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(40, 6, "Nro:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(30, 6, datos['dni'], 0, 1, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(40, 6, "Apellido y Nombre:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 6, datos['chofer'], 0, 1, 'L')
-    pdf.ln(3)
-
+    pdf.cell(60, 8, "Chofer", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, f"{datos['chofer']} (DNI: {datos['dni']})", 1, 1, 'L')
+    
     pdf.set_font("Arial", "B", 10)
-    pdf.cell(0, 6, "Datos del Vehículo", 0, 1, 'L')
-    pdf.ln(1)
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(40, 6, "Dominio:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(30, 6, datos['patente'].upper(), 0, 1, 'L')
-    pdf.ln(3)
-
+    pdf.cell(60, 8, "Empresa", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, datos['empresa'], 1, 1, 'L')
+    
     pdf.set_font("Arial", "B", 10)
-    pdf.cell(0, 6, "Imágenes de la Infracción", 0, 1, 'L')
-    pdf.ln(2)
+    pdf.cell(60, 8, "Sector", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, datos['sector'], 1, 1, 'L')
+    
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Zona de velocidad", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, f"{datos['zona']} km/h", 1, 1, 'L')
+    
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Exceso de velocidad", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, f"{datos['exceso']} km/h", 1, 1, 'L')
+    
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Dominio del vehículo", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, datos['patente'], 1, 1, 'L')
+    
+    pdf.ln(10)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 6, "Se remite a Staff de Seguridad Patrimonial.", 0, 1)
+    pdf.cell(0, 6, "Se adjunta registro fotográfico.", 0, 1)
+    pdf.ln(10)
 
+    # --- Imágenes y firma (misma lógica que antes) ---
     if fotos_files:
-        col_width = (pdf.w - 2 * pdf.l_margin) / 2 - 2
-        current_y = pdf.get_y()
+        col_width = (pdf.w - 30) / 2
         max_height_in_row = 0
-        
         for i, foto_file in enumerate(fotos_files):
-            imagen_optimizada = optimizar_imagen(foto_file, max_ancho=int(col_width * 3.7))
-            
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
-                imagen_optimizada.save(tmp.name, format="PNG")
-                
-                img_w, img_h = imagen_optimizada.size
-                height_mm = col_width * img_h / img_w
+            image = Image.open(foto_file)
+            width_mm = min(image.width * 25.4 / 96, col_width)
+            height_mm = width_mm * image.height / image.width
+            max_height_in_row = max(max_height_in_row, height_mm)
 
-                x_pos = pdf.l_margin if i % 2 == 0 else pdf.l_margin + col_width + 4
-                
-                if current_y + height_mm > pdf.h - pdf.b_margin - 10:
-                    pdf.add_page()
-                    current_y = pdf.get_y()
-                
-                pdf.image(tmp.name, x=x_pos, y=current_y, w=col_width, h=height_mm)
-                os.unlink(tmp.name)
-                
-                pdf.set_xy(x_pos, current_y + height_mm + 1)
-                pdf.set_font("Arial", "", 7)
-                pdf.multi_cell(col_width, 3, f"{datos['hora']} {datetime.date.today().strftime('%d/%m/%Y')} Ruta Prov. 74 Km {datos['sector']} ...", 0, 'L')
-                
-                max_height_in_row = max(max_height_in_row, height_mm + 10)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                image.save(tmp.name, format="PNG")
+                x_pos = 15 if i % 2 == 0 else 15 + col_width
+                y_pos = pdf.get_y()
+                pdf.image(tmp.name, x=x_pos, y=y_pos, w=width_mm, h=height_mm)
+                os.unlink(tmp.name) # Eliminar el archivo después de usarlo
 
                 if i % 2 == 1:
-                    current_y += max_height_in_row + 5
-                    pdf.set_y(current_y)
+                    pdf.ln(max_height_in_row + 5)
                     max_height_in_row = 0
-        
-        if len(fotos_files) % 2 == 1:
-            current_y += max_height_in_row + 5
-            pdf.set_y(current_y)
-            
-    if firma_file:
-        pdf.set_y(pdf.h - pdf.b_margin - 40)
-        pdf.set_x(pdf.w - pdf.r_margin - 60)
-        
-        pdf.set_font("Arial", "", 9)
-        pdf.cell(60, 5, "Firma del guardia:", 0, 1, 'C')
 
-        imagen_optimizada_firma = optimizar_imagen(firma_file, max_ancho=150)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
-            imagen_optimizada_firma.save(tmp_sig.name, format="PNG")
-            
-            img_w_sig, img_h_sig = imagen_optimizada_firma.size
-            width_firma_mm = 50
-            height_firma_mm = width_firma_mm * img_h_sig / img_w_sig
-            x_firma = pdf.w - pdf.r_margin - width_firma_mm - 5
-            pdf.image(tmp_sig.name, x=x_firma, y=pdf.get_y(), w=width_firma_mm, h=height_firma_mm)
-            os.unlink(tmp_sig.name)
+            if len(fotos_files) % 2 == 1:
+                pdf.ln(max_height_in_row + 5)
+
+    if firma_file:
         pdf.ln(10)
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 6, "Firma del guardia:", ln=True)
+        img = Image.open(firma_file)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
+            img.save(tmp_sig.name, format="PNG")
+            x_start = pdf.w - 15 - 60
+            y_start = pdf.get_y()
+            pdf.rect(x_start - 2, y_start - 2, 60 + 4, 30 + 4)
+            pdf.image(tmp_sig.name, x=x_start, y=y_start, w=60, h=30)
+            pdf.ln(40)
+            os.unlink(tmp_sig.name)
 
     return pdf.output(dest='S').encode('latin1')
 
@@ -243,7 +219,7 @@ if enviar:
 
         with st.spinner("Generando PDF, por favor espere..."):
             try:
-                pdf_bytes = generar_pdf_formato_oficial(datos_formulario, firma, fotos_validas)
+                pdf_bytes = generar_pdf_formato_nuevo(datos_formulario, firma, fotos_validas)
                 
                 st.download_button(
                     label="Descargar Reporte PDF",
@@ -255,4 +231,3 @@ if enviar:
                 st.success("Reporte generado correctamente. ¡Haga clic en el botón de descarga!")
             except Exception as e:
                 st.error(f"Hubo un error al generar el PDF: {e}")
-    
