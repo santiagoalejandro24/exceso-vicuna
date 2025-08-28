@@ -16,20 +16,20 @@ st.markdown("""
 
 st.title("📋 Control de Exceso de Velocidad - Proyecto Vicuña")
 
-# ---- Formulario ----
+# ---- Formulario completo ----
 with st.form("formulario"):
     hora = st.text_input("⏰ Hora del registro (ej: 09:52)")
     chofer = st.text_input("👤 Chofer (Nombre y Apellido)")
     dni = st.text_input("🪪 DNI del chofer")
     empresa = st.text_input("🏢 Empresa")
-    sector = st.text_input("📍 Sector (ej: Km 170)")
+    sector = st.text_input("📍 Sector (ej: Km 170, La Majadita, etc.)")
     zona = st.number_input("🚧 Zona permitida (km/h)", min_value=0, max_value=200)
-    velocidad = st.number_input("💨 Velocidad registrada (km/h)", min_value=0, max_value=300)
+    exceso = st.number_input("💨 Exceso de velocidad (km/h)", min_value=0, max_value=300)
     patente = st.text_input("🚗 Dominio del vehículo")
     observaciones = st.text_area("📝 Observaciones adicionales (opcional)")
     enviar = st.form_submit_button("✅ Generar PDF")
 
-# ---- Generar PDF profesional ----
+# ---- Generar PDF profesional con cuadros ----
 if enviar:
     pdf = FPDF()
     pdf.add_page()
@@ -59,8 +59,8 @@ if enviar:
     add_row("Chofer", f"{chofer} (DNI: {dni})")
     add_row("Empresa", empresa)
     add_row("Sector", sector)
-    add_row("Zona permitida", f"{zona} km/h")
-    add_row("Velocidad registrada", f"{velocidad} km/h")
+    add_row("Zona de velocidad", f"{zona} km/h")
+    add_row("Exceso de velocidad", f"{exceso} km/h")
     add_row("Dominio del vehículo", patente)
 
     if observaciones.strip() != "":
