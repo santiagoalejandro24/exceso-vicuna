@@ -4,6 +4,7 @@ from PIL import Image
 import tempfile
 import os
 
+# ---- Configuración página ----
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 
 # ---- Estilos CSS ----
@@ -24,6 +25,7 @@ st.title("Control de Exceso de Velocidad - Proyecto Vicuña")
 
 # ---- Formulario ----
 with st.form("formulario"):
+    st.markdown("### Complete los datos del registro")
     hora = st.text_input("Hora del registro (ej: 09:52)")
     chofer = st.text_input("Chofer (Nombre y Apellido)")
     dni = st.text_input("DNI del chofer")
@@ -40,7 +42,7 @@ with st.form("formulario"):
         accept_multiple_files=True
     )
 
-    # Validar tamaño
+    # Validar tamaño máximo
     if fotos:
         fotos_validas = []
         for foto in fotos:
@@ -52,13 +54,22 @@ with st.form("formulario"):
 
     enviar = st.form_submit_button("Generar PDF")
 
-# ---- PDF ----
+# ---- Generar PDF ----
 if enviar:
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_font("Arial", "", 12)
 
+    # --- Encabezado corporativo ---
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Huarpe Seguridad", ln=True, align="C")
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 8, "Seguridad Integral", ln=True, align="C")
+    pdf.cell(0, 8, "Patrulla Huarpe", ln=True, align="C")
+    pdf.ln(5)
+
+    # --- Sección tradicional ---
     pdf.set_font("Arial", "B", 14)
     pdf.cell(0, 10, "Señores", ln=True)
     pdf.cell(0, 10, "Seguridad Patrimonial", ln=True)
@@ -69,7 +80,7 @@ if enviar:
     pdf.cell(0, 10, "Para informar, exceso de velocidad:", ln=True)
     pdf.ln(5)
 
-    # Tabla con colores alternos
+    # --- Tabla con colores alternos ---
     pdf.set_font("Arial", "B", 12)
     def add_row(label, value, fill=False):
         pdf.set_font("Arial", "B", 11)
@@ -91,31 +102,39 @@ if enviar:
     pdf.ln(5)
     pdf.multi_cell(0, 10, "Se remite a Staff de Seguridad Patrimonial.\nSe adjunta registro fotográfico.")
 
-    # ---- Fotos con buena resolución ----
+    # --- Fotos en 2 columnas ---
     if fotos:
         pdf.ln(5)
-        for foto in fotos:
+        col_width = (pdf.w - 30) / 2  # ancho de cada columna
+        for i, foto in enumerate(fotos):
             image = Image.open(foto)
-            # Ajuste proporcional sin perder calidad
-            max_width = 160  # mm
-            ratio = min(max_width / image.width * 25.4 / 72, 1)  # convertir px a mm aprox
-            new_width = image.width * ratio
-            new_height = image.height * ratio
+            # Mantener buena resolución
+            max_width_mm = col_width
+            dpi = 96
+            width_mm = min(image.width * 25.4 / dpi, max_width_mm)
+            height_mm = width_mm * image.height / image.width
 
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
                 image.save(tmp.name, format="PNG")
-                pdf.image(tmp.name, w=new_width)
-                pdf.ln(5)
+                x_pos = 15 if i % 2 == 0 else 15 + col_width
+                y_pos = pdf.get_y()
+                pdf.image(tmp.name, x=x_pos, y=y_pos, w=width_mm, h=height_mm)
                 os.unlink(tmp.name)
+
+                # Si la foto es la segunda de la fila, saltar a la siguiente fila
+                if i % 2 == 1:
+                    pdf.ln(height_mm + 5)
+        pdf.ln(5)
 
         # Miniaturas en portal
         st.markdown("### Fotos subidas")
         for foto in fotos:
             st.image(foto, width=200)
 
-    # Guardar PDF
+    # --- Guardar y descargar PDF ---
     pdf_file = "Reporte_Exceso-Vicuna_Profesional.pdf"
     pdf.output(pdf_file)
     with open(pdf_file, "rb") as f:
         st.download_button("Descargar Reporte PDF", f, file_name=pdf_file, mime="application/pdf")
+
     st.success("Reporte generado correctamente")
