@@ -3,7 +3,6 @@ from fpdf import FPDF
 from PIL import Image
 import tempfile
 import os
-from streamlit_drawable_canvas import st_canvas
 
 # ---- Configuración página ----
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
@@ -37,18 +36,9 @@ with st.form("formulario"):
     patente = st.text_input("Dominio del vehículo")
     observaciones = st.text_area("Observaciones adicionales (opcional)")
 
-    # ---- Canvas para firma ----
-    st.markdown("### Firma del guardia (dibuje con el mouse o dedo)")
-    canvas_result = st_canvas(
-        fill_color="rgba(0, 0, 0, 0)",
-        stroke_width=2,
-        stroke_color="#FFFFFF",
-        background_color="#121212",
-        height=150,
-        width=400,
-        drawing_mode="freedraw",
-        key="canvas"
-    )
+    # ---- Subida de firma como imagen ----
+    st.markdown("### Firma del guardia (subir imagen .png o .jpg)")
+    firma = st.file_uploader("Subir imagen de firma", type=["png", "jpg", "jpeg"])
 
     fotos = st.file_uploader(
         "Adjunte archivo(s) fotográfico(s) (máx. 30 MB cada uno)",
@@ -157,25 +147,20 @@ if enviar:
             for foto in fotos:
                 st.image(foto, width=200)
 
-        # --- Insertar firma digital alineada a la derecha con marco ---
-        if canvas_result.image_data is not None:
-            img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
+        # --- Insertar firma como imagen ---
+        if firma:
+            pdf.ln(10)
+            pdf.set_font("Arial", "B", 12)
+            pdf.cell(0, 6, "Firma del guardia:", ln=True)
+            img = Image.open(firma)
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
                 img.save(tmp_sig.name, format="PNG")
-                pdf.ln(10)
-                pdf.set_font("Arial", "B", 12)
-                # Dibujar título
-                pdf.cell(0, 6, "Firma del guardia:", ln=True)
-                # Guardar posición para el marco
-                x_start = pdf.get_x() + 100  # Alinea a la derecha
+                # Alinea a la derecha
+                x_start = pdf.w - 15 - 60
                 y_start = pdf.get_y()
-                width_sig = 60
-                height_sig = 30
-                # Dibujar rectángulo (marco)
-                pdf.rect(x_start - 2, y_start - 2, width_sig + 4, height_sig + 4)
-                # Insertar imagen dentro del marco
-                pdf.image(tmp_sig.name, x=x_start, y=y_start, w=width_sig, h=height_sig)
-                pdf.ln(height_sig + 10)
+                pdf.rect(x_start - 2, y_start - 2, 60 + 4, 30 + 4)  # marco
+                pdf.image(tmp_sig.name, x=x_start, y=y_start, w=60, h=30)
+                pdf.ln(40)
                 os.unlink(tmp_sig.name)
 
         # --- Guardar y descargar PDF ---
