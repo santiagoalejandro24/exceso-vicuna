@@ -3,8 +3,8 @@ from fpdf import FPDF
 from PIL import Image
 import tempfile
 import os
-import datetime 
-import re 
+import datetime
+import re
 
 # ---- Configuración página ----
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
@@ -50,7 +50,6 @@ def validar_formulario(hora, chofer, dni, empresa, sector, patente, zona, exceso
         
     return True, ""
 
-
 # --- Función para generar el PDF y devolver sus bytes ---
 def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
     pdf = FPDF()
@@ -59,17 +58,15 @@ def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
     pdf.set_font("Arial", "", 10)
 
     # --- Encabezado ---
-    # Colocar "PATRULLA BATIDERO"
+    # Posición de los logos (ajustar según tamaños reales)
     pdf.set_font("Arial", "B", 10)
     pdf.set_xy(15, 15)
     pdf.multi_cell(30, 4, "PATRULLA\nBATIDERO", 0, 'L')
     
-    # Colocar "HUARPE SEGURIDAD"
     pdf.set_font("Arial", "B", 10)
     pdf.set_xy(50, 15)
     pdf.multi_cell(100, 4, "HUARPE SEGURIDAD", 0, 'C')
 
-    # Colocar "PROYECTO VICUÑA"
     pdf.set_font("Arial", "B", 10)
     pdf.set_xy(165, 15)
     pdf.multi_cell(30, 4, "PROYECTO\nVICUÑA", 0, 'R')
