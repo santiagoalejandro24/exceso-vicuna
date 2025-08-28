@@ -63,7 +63,9 @@ if enviar:
 
     # --- Encabezado corporativo ---
     pdf.set_font("Arial", "B", 18)
-    pdf.cell(0, 10, "Huarpe Seguridad", ln=True, align="C")
+    pdf.set_text_color(0, 128, 0)  # Verde
+    pdf.cell(0, 10, "HUARPE SEGURIDAD", ln=True, align="C")
+    pdf.set_text_color(0, 0, 0)  # Negro para subtítulos
     pdf.set_font("Arial", "B", 14)
     pdf.cell(0, 8, "Seguridad Integral", ln=True, align="C")
     pdf.cell(0, 8, "Patrulla Huarpe", ln=True, align="C")
@@ -109,7 +111,6 @@ if enviar:
         max_height_in_row = 0
         for i, foto in enumerate(fotos):
             image = Image.open(foto)
-            # Mantener proporción
             dpi = 96
             width_mm = min(image.width * 25.4 / dpi, col_width)
             height_mm = width_mm * image.height / image.width
@@ -122,15 +123,13 @@ if enviar:
                 pdf.image(tmp.name, x=x_pos, y=y_pos, w=width_mm, h=height_mm)
                 os.unlink(tmp.name)
 
-                # Si la foto es la segunda de la fila, saltar a la siguiente fila
                 if i % 2 == 1:
                     pdf.ln(max_height_in_row + 5)
                     max_height_in_row = 0
-        # Si queda una foto sola en fila, saltar línea
+
         if len(fotos) % 2 == 1:
             pdf.ln(max_height_in_row + 5)
 
-        # Miniaturas en portal
         st.markdown("### Fotos subidas")
         for foto in fotos:
             st.image(foto, width=200)
