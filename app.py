@@ -283,7 +283,7 @@ if enviar:
                 
                 # Nombre de archivo más descriptivo
                 fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                nombre_pdf = f"Reporte_Exceso_Vicuña_{datos['patente']}_{fecha_actual}.pdf"
+                nombre_pdf = f"Reporte_Exceso_Vicuña_{datos_formulario['patente']}_{fecha_actual}.pdf"
 
                 st.download_button(
                     label="Descargar Reporte PDF",
