@@ -1,7 +1,8 @@
 import streamlit as st
 from fpdf import FPDF
 from PIL import Image
-from io import BytesIO
+import tempfile
+import os
 
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 
@@ -110,10 +111,12 @@ if enviar:
         for foto in fotos:
             image = Image.open(foto)
             image.thumbnail((180, 180))
-            buf = BytesIO()
-            image.save(buf, format="PNG")
-            pdf.image(buf, w=pdf.w/2)  # Ajusta ancho a la mitad de la página
-            pdf.ln(5)
+            # Guardar temporalmente
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                image.save(tmp.name, format="PNG")
+                pdf.image(tmp.name, w=pdf.w/2)
+                pdf.ln(5)
+                os.unlink(tmp.name)  # borrar temporal después
 
         # Mostrar miniaturas en portal
         st.markdown("### Fotos subidas")
