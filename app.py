@@ -1,7 +1,8 @@
 import streamlit as st
 from fpdf import FPDF
 from PIL import Image
-from datetime import datetime
+import tempfile
+import os
 
 # ---- Configuración página ----
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
@@ -73,23 +74,21 @@ if enviar:
         pdf.ln(10)
 
         # --- Encabezado tipo informe ---
-        fecha_actual = datetime.now().strftime("%d/%m/%Y")
         pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 6, f"A: Staff de Seguridad Patrimonial – Proyecto Vicuña", ln=True)
-        pdf.cell(0, 6, f"De: Patrulla Huarpe – Seguridad Integral", ln=True)
-        pdf.cell(0, 6, f"Fecha: {fecha_actual}   Hora: {hora}", ln=True)
-        pdf.ln(4)
-        pdf.cell(0, 6, "Asunto: Registro de Exceso de Velocidad", ln=True)
+        pdf.cell(0, 6, "Señores", ln=True)
+        pdf.cell(0, 6, "Seguridad Patrimonial", ln=True)
+        pdf.cell(0, 6, "Proyecto Vicuña", ln=True)
+        pdf.cell(0, 6, "S_/_D", ln=True)
         pdf.ln(5)
-        pdf.set_font("Arial", "", 11)
-        pdf.multi_cell(0, 6, f"Se informa que el vehículo {patente} conducido por {chofer} excedió la velocidad permitida en la zona {sector}. Se adjuntan fotografías correspondientes al registro.")
+        pdf.set_font("Arial", "", 12)
+        pdf.cell(0, 10, "Para informar, exceso de velocidad:", ln=True)
         pdf.ln(5)
 
-        # --- Tabla de datos con colores suaves ---
+        # --- Tabla con colores suaves ---
         pdf.set_font("Arial", "B", 12)
         def add_row(label, value, fill=False):
             pdf.set_font("Arial", "B", 11)
-            pdf.set_fill_color(240, 240, 240) if fill else pdf.set_fill_color(255, 255, 255)
+            pdf.set_fill_color(245, 245, 245) if fill else pdf.set_fill_color(255, 255, 255)
             pdf.cell(60, 10, label, border=1, fill=True)
             pdf.set_font("Arial", "", 11)
             pdf.cell(0, 10, str(value), border=1, ln=True, fill=True)
@@ -112,56 +111,42 @@ if enviar:
             fill = not fill
 
         pdf.ln(5)
+        pdf.multi_cell(0, 10, "Se remite a Staff de Seguridad Patrimonial.\nSe adjunta registro fotográfico.")
 
-        # --- Fotos corporativas (hasta 3 por fila) ---
+        # --- Fotos en 2 columnas ---
         if fotos:
             pdf.ln(5)
-            cols = 3
-            col_width = (pdf.w - 20) / cols
-            max_height_row = 0
-
+            col_width = (pdf.w - 30) / 2
+            max_height_in_row = 0
             for i, foto in enumerate(fotos):
                 image = Image.open(foto)
                 dpi = 96
                 width_mm = min(image.width * 25.4 / dpi, col_width)
                 height_mm = width_mm * image.height / image.width
-                max_img_height = 70
-                height_mm = min(height_mm, max_img_height)
-                max_height_row = max(max_height_row, height_mm)
+                max_height_in_row = max(max_height_in_row, height_mm)
 
-                col = i % cols
-                x_pos = 10 + col * col_width
-                y_pos = pdf.get_y()
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                    image.save(tmp.name, format="PNG")
+                    x_pos = 15 if i % 2 == 0 else 15 + col_width
+                    y_pos = pdf.get_y()
+                    pdf.image(tmp.name, x=x_pos, y=y_pos, w=width_mm, h=height_mm)
+                    os.unlink(tmp.name)
 
-                # Título foto
-                pdf.set_xy(x_pos, y_pos)
-                pdf.set_font("Arial", "B", 9)
-                pdf.multi_cell(width_mm, 4, f"{chofer} - {patente} (Foto {i+1})", align="C")
+                    if i % 2 == 1:
+                        pdf.ln(max_height_in_row + 5)
+                        max_height_in_row = 0
 
-                y_pos += 6
-                pdf.image(foto, x=x_pos, y=y_pos, w=width_mm, h=height_mm)
-                pdf.set_draw_color(0, 0, 0)
-                pdf.rect(x_pos, y_pos, width_mm, height_mm)
-
-                if col == cols - 1:
-                    pdf.ln(max_height_row + 12)
-                    max_height_row = 0
-
-            if len(fotos) % cols != 0:
-                pdf.ln(max_height_row + 12)
+            if len(fotos) % 2 == 1:
+                pdf.ln(max_height_in_row + 5)
 
             st.markdown("### Fotos subidas")
             for foto in fotos:
                 st.image(foto, width=200)
 
-        # --- Guardar PDF en memoria con UTF-8 (FPDF2) ---
-        pdf_bytes = pdf.output(dest='S').encode('utf-8')
-
-        st.download_button(
-            "Descargar Reporte PDF",
-            data=pdf_bytes,
-            file_name="Reporte_Exceso-Vicuna_Profesional.pdf",
-            mime="application/pdf"
-        )
+        # --- Guardar y descargar PDF ---
+        pdf_file = "Reporte_Exceso-Vicuna_Profesional.pdf"
+        pdf.output(pdf_file)
+        with open(pdf_file, "rb") as f:
+            st.download_button("Descargar Reporte PDF", f, file_name=pdf_file, mime="application/pdf")
 
         st.success("Reporte generado correctamente")
