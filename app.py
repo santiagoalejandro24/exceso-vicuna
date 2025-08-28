@@ -40,7 +40,7 @@ canvas_result = st_canvas(
     key="canvas"
 )
 
-# Nombre y DNI del guardia
+# Nombre y DNI del guardia para el recuadro
 nombre_guardia = st.text_input("Nombre del Guardia")
 dni_guardia = st.text_input("DNI del Guardia")
 
@@ -50,23 +50,21 @@ if st.button("Generar PDF"):
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
-    # --- Datos del reporte en cuadros con borde grueso y sombreado ---
-    def add_field(label, value, fill_color=(245,245,245)):
+    # --- Datos del reporte en cuadros con fondo gris suave ---
+    def add_field(label, value, fill_color=(240,240,240)):
         pdf.set_fill_color(*fill_color)
-        pdf.set_draw_color(100,100,100)  # borde gris
-        pdf.set_line_width(0.5)          # borde más grueso
         pdf.set_font("Arial", "B", 11)
         pdf.cell(60, 10, label, border=1, fill=True)
         pdf.set_font("Arial", "", 11)
-        pdf.cell(0, 10, str(value), border=1, fill=True, ln=True)
+        pdf.cell(0, 10, str(value), border=1, ln=True, fill=True)
 
-    add_field("Hora del registro", f"{hora}Hs", fill_color=(240,240,240))
-    add_field("Chofer", f"{chofer} (DNI: {dni})")
-    add_field("Empresa", empresa, fill_color=(240,240,240))
-    add_field("Sector", sector)
-    add_field("Zona de velocidad", f"{zona_vel} km/h", fill_color=(240,240,240))
-    add_field("Exceso de velocidad", f"{exceso_vel} km/h")
-    add_field("Dominio del vehículo", dominio, fill_color=(240,240,240))
+    add_field("Hora del registro", f"{hora}Hs")
+    add_field("Chofer", f"{chofer} (DNI: {dni})", fill_color=(245,245,245))
+    add_field("Empresa", empresa)
+    add_field("Sector", sector, fill_color=(245,245,245))
+    add_field("Zona de velocidad", f"{zona_vel} km/h")
+    add_field("Exceso de velocidad", f"{exceso_vel} km/h", fill_color=(245,245,245))
+    add_field("Dominio del vehículo", dominio)
 
     pdf.ln(5)
 
@@ -114,8 +112,6 @@ if st.button("Generar PDF"):
         y_pos = pdf.get_y()
 
         # Dibujar rectángulo de firma
-        pdf.set_draw_color(50,50,50)
-        pdf.set_line_width(0.6)
         pdf.rect(x=x_pos, y=y_pos, w=60, h=40)
 
         # Insertar imagen de la firma dentro del recuadro
