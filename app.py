@@ -60,14 +60,13 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
     # Configurar el color verde
     pdf.set_text_color(0, 128, 0)
     
-    # Texto "HUARPE"
-    pdf.set_font("Arial", "B", 20)
-    pdf.cell(0, 10, "HUARPE", 0, 1, 'C')
+    # Texto "HUARPE" - Tamaño de fuente duplicado a 40
+    pdf.set_font("Arial", "B", 40)
+    pdf.cell(0, 20, "HUARPE", 0, 1, 'C')
     
-    # Texto "SEGURIDAD INTEGRAL"
-    # Para la fuente fina, se utiliza el estilo predeterminado sin negrita ('')
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(0, 6, "SEGURIDAD INTEGRAL", 0, 1, 'C')
+    # Texto "SEGURIDAD INTEGRAL" - Tamaño de fuente duplicado a 24
+    pdf.set_font("Arial", "", 24)
+    pdf.cell(0, 12, "SEGURIDAD INTEGRAL", 0, 1, 'C')
 
     # Volver al color negro para el resto del documento
     pdf.set_text_color(0, 0, 0)
@@ -154,17 +153,26 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
 
     if firma_file:
         pdf.ln(10)
+        # Imprime el texto de la firma en el lado izquierdo
         pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 6, "Firma del guardia:", ln=True)
+        pdf.cell(0, 6, "Firma del guardia:", 0, 0, 'L')
+        
+        # Guarda las coordenadas X e Y actuales
+        x_start = pdf.get_x()
+        y_start = pdf.get_y()
+
         img = Image.open(firma_file)
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
             img.save(tmp_sig.name, format="PNG")
-            x_start = pdf.w - 15 - 60
-            y_start = pdf.get_y()
+            
+            # Dibuja la caja y la imagen en la misma línea
             pdf.rect(x_start - 2, y_start - 2, 60 + 4, 30 + 4)
             pdf.image(tmp_sig.name, x=x_start, y=y_start, w=60, h=30)
-            pdf.ln(40)
+            
             os.unlink(tmp_sig.name)
+        
+        # Avanza a la siguiente línea después de la imagen
+        pdf.ln(40)
 
     return pdf.output(dest='S').encode('latin1')
 
@@ -239,4 +247,4 @@ if enviar:
                 st.success("Reporte generado correctamente. ¡Haga clic en el botón de descarga!")
             except Exception as e:
                 st.error(f"Hubo un error al generar el PDF: {e}")
-                
+    
