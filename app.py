@@ -61,19 +61,18 @@ if enviar:
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_font("Arial", "", 12)
 
-    # --- Encabezado corporativo solo HUARPE ---
-    pdf.set_font("Arial", "B", 36)  # Tamaño muy grande para HUARPE
+    # --- Encabezado HUARPE solo ---
+    pdf.set_font("Arial", "B", 48)  # Muy grande y gordita
     pdf.set_text_color(0, 128, 0)   # Verde
-
-    # Letras más juntas simulando mayor densidad
     texto = "HUARPE"
-    espaciado = 0.8  # ajuste de espacio entre letras (mm)
-    x_start = (pdf.w - len(texto) * 10) / 2  # posición centrada aproximada
+    espaciado = 1.5  # mm entre letras
+    x_start = (pdf.w - len(texto) * 20) / 2  # centrado aproximado
+    pdf.set_y(10)  # margen superior
     pdf.set_x(x_start)
     for letra in texto:
-        pdf.cell(10, 12, letra, ln=0, align="C")
-        pdf.set_x(pdf.get_x() - (10 - espaciado))  # reduce el espacio entre letras
-    pdf.ln(15)  # espacio debajo para el resto del contenido
+        pdf.cell(20, 20, letra, ln=0, align="C")
+        pdf.set_x(pdf.get_x() - (20 - espaciado))
+    pdf.ln(30)  # espacio debajo
 
     # --- Sección tradicional ---
     pdf.set_font("Arial", "B", 14)
