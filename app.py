@@ -22,6 +22,18 @@ body { background-color: #0E1117; color: #FAFAFA; font-family: Arial, sans-serif
 
 st.title("Control de Exceso de Velocidad - Proyecto Vicuña")
 
+# ---- Función para limpiar caracteres especiales ----
+def limpiar_texto(texto):
+    if texto is None:
+        return ""
+    replacements = {
+        "á":"a", "é":"e", "í":"i", "ó":"o", "ú":"u", "ñ":"n",
+        "Á":"A", "É":"E", "Í":"I", "Ó":"O", "Ú":"U", "Ñ":"N"
+    }
+    for k,v in replacements.items():
+        texto = texto.replace(k,v)
+    return texto
+
 # ---- Formulario ----
 with st.form("formulario"):
     st.markdown("### Complete los datos del registro")
@@ -45,7 +57,7 @@ with st.form("formulario"):
         fotos_validas = []
         for foto in fotos:
             if foto.size > 30 * 1024 * 1024:
-                st.warning(f"El archivo {foto.name} supera 30 MB y no será incluido.")
+                st.warning(f"El archivo {foto.name} supera 30 MB y no sera incluido.")
             else:
                 fotos_validas.append(foto)
         fotos = fotos_validas
@@ -58,6 +70,13 @@ if enviar:
     if any(campo.strip() == "" for campo in campos_obligatorios):
         st.warning("Por favor, complete todos los campos obligatorios.")
     else:
+        # Limpiar caracteres especiales
+        chofer_pdf = limpiar_texto(chofer)
+        empresa_pdf = limpiar_texto(empresa)
+        sector_pdf = limpiar_texto(sector)
+        patente_pdf = limpiar_texto(patente)
+        observaciones_pdf = limpiar_texto(observaciones)
+
         pdf = FPDF()
         pdf.add_page()
         pdf.set_auto_page_break(auto=True, margin=15)
@@ -79,11 +98,10 @@ if enviar:
         pdf.cell(0, 6, f"De: Patrulla Huarpe – Seguridad Integral", ln=True)
         pdf.cell(0, 6, f"Fecha: {fecha_actual}   Hora: {hora}", ln=True)
         pdf.ln(4)
-        pdf.set_font("Arial", "B", 12)
         pdf.cell(0, 6, "Asunto: Registro de Exceso de Velocidad", ln=True)
         pdf.ln(5)
         pdf.set_font("Arial", "", 11)
-        pdf.multi_cell(0, 6, f"Se informa que el vehículo {patente} conducido por {chofer} excedió la velocidad permitida en la zona {sector}. Se adjuntan fotografías correspondientes al registro.")
+        pdf.multi_cell(0, 6, f"Se informa que el vehiculo {patente_pdf} conducido por {chofer_pdf} excedio la velocidad permitida en la zona {sector_pdf}. Se adjuntan fotografias correspondientes al registro.")
         pdf.ln(5)
 
         # --- Tabla de datos con colores suaves ---
@@ -97,15 +115,15 @@ if enviar:
 
         datos = [
             ("Hora del registro", f"{hora}Hs"),
-            ("Chofer", f"{chofer} (DNI: {dni})"),
-            ("Empresa", empresa),
-            ("Sector", sector),
+            ("Chofer", f"{chofer_pdf} (DNI: {dni})"),
+            ("Empresa", empresa_pdf),
+            ("Sector", sector_pdf),
             ("Zona de velocidad", f"{zona} km/h"),
             ("Exceso de velocidad", f"{exceso} km/h"),
-            ("Dominio del vehículo", patente)
+            ("Dominio del vehiculo", patente_pdf)
         ]
-        if observaciones.strip() != "":
-            datos.append(("Observaciones adicionales", observaciones))
+        if observaciones_pdf.strip() != "":
+            datos.append(("Observaciones adicionales", observaciones_pdf))
 
         fill = False
         for label, value in datos:
@@ -138,7 +156,7 @@ if enviar:
                 pdf.set_xy(x_pos, y_pos)
                 pdf.set_font("Arial", "B", 9)
                 pdf.set_text_color(0, 0, 0)
-                pdf.multi_cell(width_mm, 4, f"{chofer} - {patente} (Foto {i+1})", align="C")
+                pdf.multi_cell(width_mm, 4, f"{chofer_pdf} - {patente_pdf} (Foto {i+1})", align="C")
 
                 y_pos += 6
                 pdf.image(foto, x=x_pos, y=y_pos, w=width_mm, h=height_mm)
@@ -156,8 +174,8 @@ if enviar:
             for foto in fotos:
                 st.image(foto, width=200)
 
-        # --- Guardar PDF en memoria ---
-        pdf_bytes = pdf.output(dest='S').encode('latin1')
+        # --- Guardar PDF en memoria sin errores UTF-8 ---
+        pdf_bytes = pdf.output(dest='S').encode('latin1', 'replace')
 
         st.download_button(
             "Descargar Reporte PDF",
