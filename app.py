@@ -58,7 +58,6 @@ def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
     pdf.set_font("Arial", "", 10)
 
     # --- Encabezado ---
-    # Posición de los logos (ajustar según tamaños reales)
     pdf.set_font("Arial", "B", 10)
     pdf.set_xy(15, 15)
     pdf.multi_cell(30, 4, "PATRULLA\nBATIDERO", 0, 'L')
@@ -72,32 +71,18 @@ def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
     pdf.multi_cell(30, 4, "PROYECTO\nVICUÑA", 0, 'R')
     pdf.ln(15)
 
-    # --- Sección: INFORMACIÓN DE LA CAUSA ---
+    # --- Sección: EXCESO DE VELOCIDAD ---
     pdf.set_fill_color(220, 220, 220)
     pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 8, "INFORMACIÓN DE LA CAUSA", 1, 1, 'C', 1)
+    pdf.cell(0, 8, "EXCESO DE VELOCIDAD", 1, 1, 'C', 1)
     
-    pdf.set_y(pdf.get_y() + 2)
-    pdf.set_font("Arial", "", 10)
-    pdf.set_x(120)
-    pdf.cell(40, 6, "Fecha de Impresión:", 0, 0, 'R')
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(35, 6, datetime.date.today().strftime("%d/%m/%Y"), 0, 1, 'L')
-    
-    pdf.ln(2)
+    pdf.ln(5)
 
     pdf.set_font("Arial", "B", 10)
     pdf.cell(0, 6, "Datos del Acta", 0, 1, 'L')
     pdf.ln(1)
     pdf.set_font("Arial", "", 9)
-    pdf.cell(50, 6, "Cant. Nro.:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(40, 6, "0Z-048-00163059-4-00", 0, 0, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(30, 6, "Estado:", 0, 0, 'R')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 6, "Citada", 0, 1, 'L')
-    pdf.set_font("Arial", "", 9)
+    # Se eliminan las líneas de Cant. Nro, Estado, Cantidad UF e Importe
     pdf.cell(50, 6, "Fecha y Hora:", 0, 0, 'L')
     pdf.set_font("Arial", "B", 9)
     pdf.cell(40, 6, f"{datetime.date.today().strftime('%d/%m/%Y')} {datos['hora']}", 0, 1, 'L')
@@ -108,38 +93,11 @@ def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
     pdf.set_font("Arial", "", 9)
     pdf.cell(50, 6, "Jurisdicción Constatación:", 0, 0, 'L')
     pdf.set_font("Arial", "B", 9)
-    pdf.cell(40, 6, datos['empresa'].upper(), 0, 0, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(30, 6, "Cantidad UF:", 0, 0, 'R')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 6, "150", 0, 1, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(50, 6, "Importe:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 6, "$59463.5", 0, 1, 'L')
+    pdf.cell(40, 6, datos['empresa'].upper(), 0, 1, 'L') # Cambio de 0,0 a 0,1 para salto de linea
     pdf.ln(3)
 
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(0, 6, "Imputaciones", 0, 1, 'L')
-    pdf.ln(1)
+    # Se elimina la sección de Imputaciones completa
     
-    start_x = pdf.get_x()
-    start_y = pdf.get_y()
-    pdf.rect(start_x, start_y, pdf.w - 2 * pdf.l_margin, 20)
-    pdf.set_xy(start_x + 2, start_y + 2)
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(30, 6, "Artículo Nro.", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 6, "Descripción", 0, 1, 'L')
-    
-    pdf.set_xy(start_x + 2, start_y + 8)
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(30, 6, "28", 0, 0, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.multi_cell(0, 6, "Por no respetar los límites reglamentarios de velocidad previstos.", 0, 'L')
-    
-    pdf.set_y(start_y + 20 + 5)
-
     pdf.set_font("Arial", "B", 10)
     pdf.cell(0, 6, "Datos del Presunto Infractor", 0, 1, 'L')
     pdf.ln(1)
@@ -150,11 +108,7 @@ def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
     pdf.set_font("Arial", "", 9)
     pdf.cell(40, 6, "Nro:", 0, 0, 'L')
     pdf.set_font("Arial", "B", 9)
-    pdf.cell(30, 6, datos['dni'], 0, 0, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(20, 6, "Genero:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 6, "M", 0, 1, 'L')
+    pdf.cell(30, 6, datos['dni'], 0, 1, 'L') # Se elimina el Genero
     pdf.set_font("Arial", "", 9)
     pdf.cell(40, 6, "Apellido y Nombre:", 0, 0, 'L')
     pdf.set_font("Arial", "B", 9)
@@ -167,42 +121,11 @@ def generar_pdf_formato_oficial(datos, firma_file, fotos_files):
     pdf.set_font("Arial", "", 9)
     pdf.cell(40, 6, "Dominio:", 0, 0, 'L')
     pdf.set_font("Arial", "B", 9)
-    pdf.cell(30, 6, datos['patente'].upper(), 0, 0, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(40, 6, "Año:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(30, 6, "2015", 0, 0, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(20, 6, "Tipo:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 6, "AUTOMÓVIL", 0, 1, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(40, 6, "Marca:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(30, 6, "HONDA", 0, 0, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(40, 6, "Modelo:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 6, "HR-V LX CVT", 0, 1, 'L')
+    pdf.cell(30, 6, datos['patente'].upper(), 0, 1, 'L') # Se elimina el resto de la linea
     pdf.ln(3)
 
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(0, 6, "Especificaciones del Equipo de Constatación", 0, 1, 'L')
-    pdf.ln(1)
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(40, 6, "Equipo Marca:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(30, 6, "SIVSA", 0, 0, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(40, 6, "Nro Serie:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 6, "00091", 0, 1, 'L')
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(40, 6, "Modelo:", 0, 0, 'L')
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 6, "V002", 0, 1, 'L')
-    pdf.ln(5)
-
+    # Se elimina la sección de Especificaciones del Equipo de Constatación
+    
     pdf.set_font("Arial", "B", 10)
     pdf.cell(0, 6, "Imágenes de la Infracción", 0, 1, 'L')
     pdf.ln(2)
@@ -337,4 +260,6 @@ if enviar:
                 st.success("Reporte generado correctamente. ¡Haga clic en el botón de descarga!")
             except Exception as e:
                 st.error(f"Hubo un error al generar el PDF: {e}")
-    
+
+
+
