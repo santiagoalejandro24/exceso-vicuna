@@ -1,6 +1,7 @@
 import streamlit as st
 from fpdf import FPDF
 from PIL import Image
+from datetime import datetime
 
 # ---- Configuración página ----
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
@@ -71,11 +72,25 @@ if enviar:
         pdf.cell(0, 8, "Patrulla Huarpe", ln=True, align="C")
         pdf.ln(10)
 
-        # --- Tabla de datos ---
+        # --- Encabezado tipo informe ---
+        fecha_actual = datetime.now().strftime("%d/%m/%Y")
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 6, f"A: Staff de Seguridad Patrimonial – Proyecto Vicuña", ln=True)
+        pdf.cell(0, 6, f"De: Patrulla Huarpe – Seguridad Integral", ln=True)
+        pdf.cell(0, 6, f"Fecha: {fecha_actual}   Hora: {hora}", ln=True)
+        pdf.ln(4)
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 6, "Asunto: Registro de Exceso de Velocidad", ln=True)
+        pdf.ln(5)
+        pdf.set_font("Arial", "", 11)
+        pdf.multi_cell(0, 6, f"Se informa que el vehículo {patente} conducido por {chofer} excedió la velocidad permitida en la zona {sector}. Se adjuntan fotografías correspondientes al registro.")
+        pdf.ln(5)
+
+        # --- Tabla de datos con colores suaves ---
         pdf.set_font("Arial", "B", 12)
         def add_row(label, value, fill=False):
             pdf.set_font("Arial", "B", 11)
-            pdf.set_fill_color(220, 235, 255) if fill else pdf.set_fill_color(245, 245, 245)
+            pdf.set_fill_color(240, 240, 240) if fill else pdf.set_fill_color(255, 255, 255)
             pdf.cell(60, 10, label, border=1, fill=True)
             pdf.set_font("Arial", "", 11)
             pdf.cell(0, 10, str(value), border=1, ln=True, fill=True)
@@ -98,7 +113,6 @@ if enviar:
             fill = not fill
 
         pdf.ln(5)
-        pdf.multi_cell(0, 10, "Se remite a Staff de Seguridad Patrimonial.\nSe adjunta registro fotográfico.")
 
         # --- Fotos corporativas (hasta 3 por fila) ---
         if fotos:
@@ -148,7 +162,7 @@ if enviar:
         st.download_button(
             "Descargar Reporte PDF",
             data=pdf_bytes,
-            file_name="Reporte_Exceso-Vicuna_Corporativo.pdf",
+            file_name="Reporte_Exceso-Vicuna_Profesional.pdf",
             mime="application/pdf"
         )
 
