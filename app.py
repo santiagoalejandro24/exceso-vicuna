@@ -4,110 +4,259 @@ from PIL import Image
 import tempfile
 import os
 import datetime
+import re
 
 # ---- Configuración página ----
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 
-# ---- Clase PDF ----
-class PDF(FPDF):
-    def header(self):
-        self.set_font("Arial", "B", 12)
-        self.cell(0, 10, "Reporte de Exceso de Velocidad - Proyecto Vicuña", ln=True, align="C")
+# ---- Estilos CSS ----
+st.markdown("""
+<style>
+body { background-color: #0E1117; color: #FAFAFA; font-family: Arial, sans-serif; }
+.stTextInput>div>div>input, .stTextArea>div>div>textarea, .stNumberInput>div>input {
+    background-color: #1E1E1E !important; color: white !important;
+    border: 1px solid #444444 !important; border-radius: 5px !important; padding: 5px !important;
+}
+.stButton>button { background-color: #6200EE; color: white; border-radius: 8px; padding: 0.8em 1.5em; font-weight: bold;}
+.stButton>button:hover { background-color: #3700B3; color: white; }
+.stForm { background-color: #121212; padding: 20px; border-radius: 10px; }
+</style>
+""", unsafe_allow_html=True)
 
-    def footer(self):
-        self.set_y(-15)
-        self.set_font("Arial", "I", 8)
-        self.cell(0, 10, f"Página {self.page_no()}", align="C")
+st.title("Control de Exceso de Velocidad - Proyecto Vicuña")
 
-def generar_pdf(hora, chofer, dni, empresa, sector, zona, exceso, patente, guardia, observaciones, fotos, firma):
-    pdf = PDF()
-    pdf.add_page()
-    pdf.set_font("Arial", "", 12)
+# Función para optimizar imágenes
+def optimizar_imagen(imagen_bytes):
+    img = Image.open(imagen_bytes)
+    if img.mode == 'P':
+        img = img.convert('RGB')
+    return img
 
-    # ---- Datos del reporte ----
-    pdf.cell(0, 10, f"Hora: {hora}", ln=True)
-    pdf.cell(0, 10, f"Chofer: {chofer}", ln=True)
-    pdf.cell(0, 10, f"DNI: {dni}", ln=True)
-    pdf.cell(0, 10, f"Empresa: {empresa}", ln=True)
-    pdf.cell(0, 10, f"Sector: {sector}", ln=True)
-    pdf.cell(0, 10, f"Zona: {zona}", ln=True)
-    pdf.cell(0, 10, f"Exceso de Velocidad: {exceso}", ln=True)
-    pdf.cell(0, 10, f"Patente: {patente}", ln=True)
-    pdf.cell(0, 10, f"Guardia que registró el exceso: {guardia}", ln=True)
-    pdf.multi_cell(0, 10, f"Observaciones: {observaciones if observaciones else '-'}")
-    pdf.ln(5)
+# Función para validar datos del formulario
+def validar_formulario(hora, chofer, dni, empresa, sector, patente, zona, exceso, guardia):
+    if not all([hora, chofer, dni, empresa, sector, patente, guardia]):
+        return False, "Por favor, complete todos los campos obligatorios."
 
-    # ---- Fotos ----
-    if fotos:
-        pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 10, "Registro Fotográfico:", ln=True)
-        for foto in fotos:
-            img = Image.open(foto)
-            max_ancho = 66  # antes 60 → 10% más grande
-            max_alto = 88   # antes 80 → 10% más grande
-            img.thumbnail((max_ancho, max_alto))
-            temp_path = tempfile.mktemp(suffix=".png")
-            img.save(temp_path)
-            pdf.image(temp_path, w=max_ancho, h=max_alto)
-            os.remove(temp_path)
-            pdf.ln(5)
+    if not re.match(r"^\d{2}:\d{2}$", hora):
+        return False, "Formato de hora incorrecto. Use HH:MM (ej. 09:52)."
 
-    # ---- Firma ----
-    if firma:
-        pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 10, "Firma del Responsable:", ln=True)
-        img = Image.open(firma)
-        img.thumbnail((80, 40))
-        temp_path = tempfile.mktemp(suffix=".png")
-        img.save(temp_path)
-        pdf.image(temp_path, w=80, h=40)
-        os.remove(temp_path)
+    if not dni.isdigit() or not (7 <= len(dni) <= 8):
+        return False, "DNI inválido. Debe contener entre 7 y 8 dígitos numéricos."
 
-    return pdf
+    if not isinstance(zona, (int, float)) or not isinstance(exceso, (int, float)):
+        return False, "Zona y Exceso de velocidad deben ser números."
 
-# ---- Validación ----
-def validar_datos(hora, dni, zona, exceso, patente):
-    if not hora or not dni or not zona or not exceso or not patente:
-        return False, "⚠️ Todos los campos obligatorios deben estar completos."
     return True, ""
 
-# ---- Formulario ----
-with st.form("form_reporte"):
-    st.subheader("Formulario de Reporte de Exceso de Velocidad")
+# Función para generar el PDF
+def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
 
-    hora = st.text_input("Hora del incidente *")
-    chofer = st.text_input("Nombre del Chofer")
-    dni = st.text_input("DNI del Chofer *")
-    empresa = st.text_input("Empresa")
-    sector = st.text_input("Sector")
-    zona = st.text_input("Zona *")
-    exceso = st.text_input("Exceso de Velocidad *")
-    patente = st.text_input("Patente *")
-    guardia = st.text_input("Nombre del Guardia que registró el exceso *")
-    observaciones = st.text_area("Observaciones")
+    # --- Encabezado ---
+    pdf.set_text_color(0, 128, 0)
+    pdf.set_font("Arial", "B", 40)
+    pdf.cell(0, 12, "HUARPE", 0, 1, 'C')
+    pdf.set_font("Arial", "", 24)
+    pdf.cell(0, 8, "SEGURIDAD INTEGRAL", 0, 1, 'C')
 
-    fotos = st.file_uploader("Subir Registro Fotográfico", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
-    firma = st.file_uploader("Subir Firma", type=["jpg", "jpeg", "png"])
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(10)
 
-    submitted = st.form_submit_button("Generar PDF")
+    # --- Detalles de la solicitud ---
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(40, 6, "Señores", 0, 1)
+    pdf.cell(40, 6, "Seguridad Patrimonial", 0, 1)
+    pdf.cell(40, 6, "Proyecto Vicuña", 0, 1)
+    pdf.cell(40, 6, "S_/_D", 0, 1)
+    pdf.ln(5)
+    pdf.cell(0, 6, "Para informar, exceso de velocidad:", 0, 1)
+    pdf.ln(3)
 
-    if submitted:
-        valido, error = validar_datos(hora, dni, zona, exceso, patente)
-        if not valido:
-            st.error(error)
-        else:
-            pdf = generar_pdf(hora, chofer, dni, empresa, sector, zona, exceso, patente, guardia, observaciones, fotos, firma)
-            pdf_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-            pdf.output(pdf_output.name)
-            st.session_state["pdf_generado"] = pdf_output.name
-            st.success("✅ El PDF fue generado correctamente. Descárguelo abajo.")
+    # --- Tabla de datos ---
+    pdf.set_font("Arial", "B", 10)
+    pdf.set_fill_color(220, 220, 220)
 
-# ---- Botón descarga fuera del form ----
-if "pdf_generado" in st.session_state:
-    with open(st.session_state["pdf_generado"], "rb") as f:
-        st.download_button(
-            "📥 Descargar Reporte PDF",
-            f,
-            file_name=f"Reporte_Exceso_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-            mime="application/pdf"
-    )
+    pdf.cell(60, 8, "Hora del registro", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, datos['hora'], 1, 1, 'L')
+
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Chofer", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, f"{datos['chofer']} (DNI: {datos['dni']})", 1, 1, 'L')
+
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Empresa", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, datos['empresa'], 1, 1, 'L')
+
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Sector", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, datos['sector'], 1, 1, 'L')
+
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Zona de velocidad", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, f"{datos['zona']} km/h", 1, 1, 'L')
+
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Exceso de velocidad", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, f"{datos['exceso']} km/h", 1, 1, 'L')
+
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Dominio del vehículo", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, datos['patente'], 1, 1, 'L')
+
+    # --- NUEVA FILA: Guardia que registró el exceso ---
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Guardia que registró el exceso", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, datos['guardia'], 1, 1, 'L')
+
+    pdf.ln(10)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 6, "Se remite a Staff de Seguridad Patrimonial.", 0, 1)
+    pdf.cell(0, 6, "Se adjunta registro fotográfico.", 0, 1)
+    pdf.ln(10)
+
+    # --- Imágenes ---
+    if fotos_files:
+        MAX_IMAGE_WIDTH_MM = 33  # 30 * 1.1
+        MAX_IMAGE_HEIGHT_MM = 44 # 40 * 1.1
+        SPACE_BETWEEN_IMAGES_MM = 5
+
+        x_pos = pdf.l_margin
+        y_pos = pdf.get_y()
+        temp_image_paths = []
+
+        try:
+            for foto_file in fotos_files:
+                img_pil = optimizar_imagen(foto_file)
+
+                DPI = 96
+                ancho_original_mm = img_pil.width * 25.4 / DPI
+                alto_original_mm = img_pil.height * 25.4 / DPI
+
+                proporcion = min(MAX_IMAGE_WIDTH_MM / ancho_original_mm,
+                                 MAX_IMAGE_HEIGHT_MM / alto_original_mm)
+
+                ancho_final_mm = ancho_original_mm * proporcion
+                alto_final_mm = alto_original_mm * proporcion
+
+                if x_pos + ancho_final_mm + SPACE_BETWEEN_IMAGES_MM > (pdf.w - pdf.r_margin):
+                    x_pos = pdf.l_margin
+                    y_pos += MAX_IMAGE_HEIGHT_MM + 5
+
+                if y_pos + alto_final_mm > (pdf.h - pdf.b_margin):
+                    pdf.add_page()
+                    x_pos = pdf.l_margin
+                    y_pos = pdf.get_y()
+
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                    img_pil.save(tmp.name, format="PNG")
+                    temp_image_paths.append(tmp.name)
+
+                pdf.image(tmp.name, x=x_pos, y=y_pos, w=ancho_final_mm, h=alto_final_mm)
+                x_pos += ancho_final_mm + SPACE_BETWEEN_IMAGES_MM
+
+            pdf.ln(MAX_IMAGE_HEIGHT_MM + 5)
+        finally:
+            for p in temp_image_paths:
+                os.unlink(p)
+
+    # --- Firma ---
+    if firma_file:
+        pdf.ln(10)
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 6, "Firma del guardia:", 0, 0, 'L')
+
+        img_firma = Image.open(firma_file)
+        ancho_firma_mm = 60
+        alto_firma_mm = 30
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
+            img_firma.save(tmp_sig.name, format="PNG")
+            ancho_texto_firma = pdf.get_string_width("Firma del guardia:")
+            margen_izquierdo_firma_img = pdf.l_margin + ancho_texto_firma + 5
+
+            if margen_izquierdo_firma_img + ancho_firma_mm > (pdf.w - pdf.r_margin):
+                pdf.ln(8)
+                x_img = (pdf.w - ancho_firma_mm) / 2
+                pdf.image(tmp_sig.name, x=x_img, y=pdf.get_y() + 2, w=ancho_firma_mm, h=alto_firma_mm)
+                pdf.rect(x_img - 2, pdf.get_y(), ancho_firma_mm + 4, alto_firma_mm + 4)
+                pdf.ln(alto_firma_mm + 5)
+            else:
+                pdf.image(tmp_sig.name, x=margen_izquierdo_firma_img, y=pdf.get_y() - 1, w=ancho_firma_mm, h=alto_firma_mm)
+                pdf.rect(margen_izquierdo_firma_img - 2, pdf.get_y() - 3, ancho_firma_mm + 4, alto_firma_mm + 4)
+                pdf.ln(alto_firma_mm + 5)
+
+            os.unlink(tmp_sig.name)
+
+    return pdf.output(dest='S').encode('latin1')
+
+
+# ---- Contenedor del formulario ----
+with st.container():
+    with st.form("formulario_reporte"):
+        st.markdown("### Complete los datos del registro")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            hora = st.text_input("Hora del registro (ej: 09:52)", key="hora_input")
+            chofer = st.text_input("Chofer (Nombre y Apellido)", key="chofer_input")
+            dni = st.text_input("DNI del chofer", key="dni_input")
+            empresa = st.text_input("Empresa", key="empresa_input")
+            guardia = st.text_input("Nombre del guardia que registró el exceso", key="guardia_input")
+        with col2:
+            sector = st.text_input("Sector (ej: Km 170, La Majadita, etc.)", key="sector_input")
+            zona = st.number_input("Zona de velocidad permitida (km/h)", min_value=0, max_value=200, key="zona_input")
+            exceso = st.number_input("Exceso de velocidad registrado (km/h)", min_value=0, max_value=300, key="exceso_input")
+            patente = st.text_input("Dominio del vehículo", key="patente_input")
+
+        observaciones = st.text_area("Observaciones adicionales (opcional)", key="observaciones_input")
+
+        st.markdown("### Firma del guardia (subir imagen .png o .jpg)")
+        firma = st.file_uploader("Subir imagen de firma", type=["png", "jpg", "jpeg"], key="firma_uploader")
+
+        st.markdown("### Adjuntar fotografías del incidente (máx. 30 MB cada una)")
+        fotos = st.file_uploader(
+            "Seleccionar archivo(s) de imagen",
+            type=["jpg", "jpeg", "png"],
+            accept_multiple_files=True,
+            key="fotos_uploader"
+        )
+
+        enviar = st.form_submit_button("Generar PDF")
+
+
+# ---- Generar PDF con indicador visual ----
+if enviar:
+    datos_formulario = {
+        "hora": hora,
+        "chofer": chofer,
+        "dni": dni,
+        "empresa": empresa,
+        "sector": sector,
+        "zona": zona,
+        "exceso": exceso,
+        "patente": patente,
+        "observaciones": observaciones,
+        "guardia": guardia
+    }
+
+    es_valido, mensaje = validar_formulario(hora, chofer, dni, empresa, sector, patente, zona, exceso, guardia)
+
+    if not es_valido:
+        st.warning(mensaje)
+    else:
+        fotos_validas = []
+        for foto in fotos if fotos else []:
+            if foto.size > 30 * 1024 * 1024:
+                st.warning(f"El archivo {foto.name} supera 30 MB y no será incluido en el PDF.")
+            else:
+                fotos_validas.append(foto)
