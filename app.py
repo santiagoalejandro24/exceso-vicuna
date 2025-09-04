@@ -8,7 +8,7 @@ import datetime
 # ---- Configuración página ----
 st.set_page_config(page_title="Reporte Exceso Vicuña", layout="centered")
 
-# ---- Función para generar PDF ----
+# ---- Clase PDF ----
 class PDF(FPDF):
     def header(self):
         self.set_font("Arial", "B", 12)
@@ -19,15 +19,22 @@ class PDF(FPDF):
         self.set_font("Arial", "I", 8)
         self.cell(0, 10, f"Página {self.page_no()}", align="C")
 
-def generar_pdf(datos, fotos, firma):
+def generar_pdf(hora, chofer, dni, empresa, sector, zona, exceso, patente, guardia, observaciones, fotos, firma):
     pdf = PDF()
     pdf.add_page()
     pdf.set_font("Arial", "", 12)
 
     # ---- Datos del reporte ----
-    for campo, valor in datos.items():
-        pdf.cell(0, 10, f"{campo.capitalize()}: {valor}", ln=True)
-
+    pdf.cell(0, 10, f"Hora: {hora}", ln=True)
+    pdf.cell(0, 10, f"Chofer: {chofer}", ln=True)
+    pdf.cell(0, 10, f"DNI: {dni}", ln=True)
+    pdf.cell(0, 10, f"Empresa: {empresa}", ln=True)
+    pdf.cell(0, 10, f"Sector: {sector}", ln=True)
+    pdf.cell(0, 10, f"Zona: {zona}", ln=True)
+    pdf.cell(0, 10, f"Exceso de Velocidad: {exceso}", ln=True)
+    pdf.cell(0, 10, f"Patente: {patente}", ln=True)
+    pdf.cell(0, 10, f"Guardia que registró el exceso: {guardia}", ln=True)
+    pdf.multi_cell(0, 10, f"Observaciones: {observaciones if observaciones else '-'}")
     pdf.ln(5)
 
     # ---- Fotos ----
@@ -36,8 +43,8 @@ def generar_pdf(datos, fotos, firma):
         pdf.cell(0, 10, "Registro Fotográfico:", ln=True)
         for foto in fotos:
             img = Image.open(foto)
-            max_ancho = 66  # 10% más grande que antes
-            max_alto = 88
+            max_ancho = 66  # antes 60 → 10% más grande
+            max_alto = 88   # antes 80 → 10% más grande
             img.thumbnail((max_ancho, max_alto))
             temp_path = tempfile.mktemp(suffix=".png")
             img.save(temp_path)
@@ -58,7 +65,7 @@ def generar_pdf(datos, fotos, firma):
 
     return pdf
 
-# ---- Validación de datos ----
+# ---- Validación ----
 def validar_datos(hora, dni, zona, exceso, patente):
     if not hora or not dni or not zona or not exceso or not patente:
         return False, "⚠️ Todos los campos obligatorios deben estar completos."
@@ -89,27 +96,13 @@ with st.form("form_reporte"):
         if not valido:
             st.error(error)
         else:
-            datos_formulario = {
-                "Hora": hora,
-                "Chofer": chofer,
-                "DNI": dni,
-                "Empresa": empresa,
-                "Sector": sector,
-                "Zona": zona,
-                "Exceso": exceso,
-                "Patente": patente,
-                "Guardia": guardia,
-                "Observaciones": observaciones
-            }
-            pdf = generar_pdf(datos_formulario, fotos, firma)
+            pdf = generar_pdf(hora, chofer, dni, empresa, sector, zona, exceso, patente, guardia, observaciones, fotos, firma)
             pdf_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
             pdf.output(pdf_output.name)
-
-            # Guardamos el PDF en la sesión para poder descargarlo fuera del form
             st.session_state["pdf_generado"] = pdf_output.name
             st.success("✅ El PDF fue generado correctamente. Descárguelo abajo.")
 
-# ---- Botón de descarga (fuera del form) ----
+# ---- Botón descarga fuera del form ----
 if "pdf_generado" in st.session_state:
     with open(st.session_state["pdf_generado"], "rb") as f:
         st.download_button(
@@ -117,4 +110,4 @@ if "pdf_generado" in st.session_state:
             f,
             file_name=f"Reporte_Exceso_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
             mime="application/pdf"
-        )
+    )
