@@ -28,14 +28,13 @@ st.title("Control de Exceso de Velocidad - Proyecto Vicuña")
 # Función para optimizar imágenes
 def optimizar_imagen(imagen_bytes):
     img = Image.open(imagen_bytes)
-    # Convertir a RGB si es necesario (para compatibilidad con FPDF y evitar errores PNG/paleta)
-    if img.mode == 'P':
+    if img.mode == 'P':  # Convertir paleta a RGB
         img = img.convert('RGB')
     return img
 
 # Función para validar datos del formulario
-def validar_formulario(hora, chofer, dni, empresa, sector, patente, zona, exceso):
-    if not all([hora, chofer, dni, empresa, sector, patente]):
+def validar_formulario(hora, chofer, dni, empresa, sector, patente, zona, exceso, guardia):
+    if not all([hora, chofer, dni, empresa, sector, patente, guardia]):
         return False, "Por favor, complete todos los campos obligatorios."
     
     if not re.match(r"^\d{2}:\d{2}$", hora):
@@ -49,31 +48,22 @@ def validar_formulario(hora, chofer, dni, empresa, sector, patente, zona, exceso
         
     return True, ""
 
-# --- Función para generar el PDF y devolver sus bytes ---
+# --- Función para generar el PDF ---
 def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     
     # --- Encabezado ---
-    # Configurar el color verde
     pdf.set_text_color(0, 128, 0)
-    
-    # Texto "HUARPE" - Tamaño de fuente 40
-    # Altura reducida para menor separación
     pdf.set_font("Arial", "B", 40)
     pdf.cell(0, 12, "HUARPE", 0, 1, 'C')
-    
-    # Texto "SEGURIDAD INTEGRAL" - Tamaño de fuente 24
-    # Altura reducida para menor separación
     pdf.set_font("Arial", "", 24)
     pdf.cell(0, 8, "SEGURIDAD INTEGRAL", 0, 1, 'C')
-
-    # Volver al color negro para el resto del documento
     pdf.set_text_color(0, 0, 0)
     pdf.ln(10)
 
-    # --- Detalles de la solicitud ---
+    # --- Destinatarios ---
     pdf.set_font("Arial", "", 10)
     pdf.cell(40, 6, "Señores", 0, 1)
     pdf.cell(40, 6, "Seguridad Patrimonial", 0, 1)
@@ -86,8 +76,7 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
     # --- Tabla de datos ---
     pdf.set_font("Arial", "B", 10)
     pdf.set_fill_color(220, 220, 220)
-    
-    # Encabezados de la tabla
+
     pdf.cell(60, 8, "Hora del registro", 1, 0, 'L', 1)
     pdf.set_font("Arial", "", 10)
     pdf.cell(0, 8, datos['hora'], 1, 1, 'L')
@@ -121,7 +110,20 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
     pdf.cell(60, 8, "Dominio del vehículo", 1, 0, 'L', 1)
     pdf.set_font("Arial", "", 10)
     pdf.cell(0, 8, datos['patente'], 1, 1, 'L')
-    
+
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(60, 8, "Guardia que realizó el control", 1, 0, 'L', 1)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 8, datos['guardia'], 1, 1, 'L')
+
+    # --- Observaciones ---
+    if datos['observaciones']:
+        pdf.set_font("Arial", "B", 10)
+        pdf.cell(60, 8, "Observaciones", 1, 0, 'L', 1)
+        pdf.set_font("Arial", "", 10)
+        pdf.multi_cell(0, 8, datos['observaciones'], 1, 'L')
+        pdf.ln(5)
+
     pdf.ln(10)
     pdf.set_font("Arial", "", 10)
     pdf.cell(0, 6, "Se remite a Staff de Seguridad Patrimonial.", 0, 1)
@@ -130,91 +132,60 @@ def generar_pdf_formato_nuevo(datos, firma_file, fotos_files):
 
     # --- Imágenes ---
     if fotos_files:
-        # Dimensiones máximas para las imágenes en mm (3cm x 4cm)
         MAX_IMAGE_WIDTH_MM = 30
         MAX_IMAGE_HEIGHT_MM = 40
         SPACE_BETWEEN_IMAGES_MM = 5
-        
-        # Posiciones iniciales
         x_pos = pdf.l_margin
         y_pos = pdf.get_y()
-
         temp_image_paths = []
         try:
             for foto_file in fotos_files:
                 img_pil = optimizar_imagen(foto_file)
-                
-                # Convertir dimensiones de píxeles a mm (usando una DPI de 96 como estándar)
                 DPI = 96
                 ancho_original_mm = img_pil.width * 25.4 / DPI
                 alto_original_mm = img_pil.height * 25.4 / DPI
-                
-                # Calcular la proporción para redimensionar
-                proporcion_ancho = MAX_IMAGE_WIDTH_MM / ancho_original_mm
-                proporcion_alto = MAX_IMAGE_HEIGHT_MM / alto_original_mm
-                proporcion = min(proporcion_ancho, proporcion_alto)
-                
+                proporcion = min(MAX_IMAGE_WIDTH_MM / ancho_original_mm, MAX_IMAGE_HEIGHT_MM / alto_original_mm)
                 ancho_final_mm = ancho_original_mm * proporcion
                 alto_final_mm = alto_original_mm * proporcion
-
-                # Verificar si cabe en la fila actual
                 if x_pos + ancho_final_mm + SPACE_BETWEEN_IMAGES_MM > (pdf.w - pdf.r_margin):
                     x_pos = pdf.l_margin
                     y_pos += MAX_IMAGE_HEIGHT_MM + 5
-                
-                # Verificar si cabe en la página
                 if y_pos + alto_final_mm > (pdf.h - pdf.b_margin):
                     pdf.add_page()
                     x_pos = pdf.l_margin
                     y_pos = pdf.get_y()
-
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
                     img_pil.save(tmp.name, format="PNG")
                     temp_image_paths.append(tmp.name)
-                
                 pdf.image(tmp.name, x=x_pos, y=y_pos, w=ancho_final_mm, h=alto_final_mm)
-                
                 x_pos += ancho_final_mm + SPACE_BETWEEN_IMAGES_MM
-
-            pdf.ln(MAX_IMAGE_HEIGHT_MM + 5) # Salto de línea después de la última fila de imágenes
-
+            pdf.ln(MAX_IMAGE_HEIGHT_MM + 5)
         finally:
-            # Limpiar archivos temporales
             for p in temp_image_paths:
                 os.unlink(p)
 
     # --- Firma ---
     if firma_file:
-        pdf.ln(10) # Espacio antes de la firma
+        pdf.ln(10)
         pdf.set_font("Arial", "B", 12)
         pdf.cell(0, 6, "Firma del guardia:", 0, 0, 'L')
-        
-        # Guarda las coordenadas X e Y actuales para la caja de la firma
-        x_start_box = pdf.get_x()
-        y_start_box = pdf.get_y()
-
         img_firma = Image.open(firma_file)
-        # Optimizamos la imagen de la firma
         ancho_firma_mm = 60
         alto_firma_mm = 30
-        
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sig:
             img_firma.save(tmp_sig.name, format="PNG")
-            
             ancho_texto_firma = pdf.get_string_width("Firma del guardia:")
             margen_izquierdo_firma_img = pdf.l_margin + ancho_texto_firma + 5 
-            
             if margen_izquierdo_firma_img + ancho_firma_mm > (pdf.w - pdf.r_margin):
-                 pdf.ln(8) 
-                 x_img = (pdf.w - ancho_firma_mm) / 2
-                 pdf.image(tmp_sig.name, x=x_img, y=pdf.get_y() + 2, w=ancho_firma_mm, h=alto_firma_mm)
-                 pdf.rect(x_img - 2, pdf.get_y(), ancho_firma_mm + 4, alto_firma_mm + 4)
-                 pdf.ln(alto_firma_mm + 5)
+                pdf.ln(8) 
+                x_img = (pdf.w - ancho_firma_mm) / 2
+                pdf.image(tmp_sig.name, x=x_img, y=pdf.get_y() + 2, w=ancho_firma_mm, h=alto_firma_mm)
+                pdf.rect(x_img - 2, pdf.get_y(), ancho_firma_mm + 4, alto_firma_mm + 4)
+                pdf.ln(alto_firma_mm + 5)
             else:
-                 pdf.image(tmp_sig.name, x=margen_izquierdo_firma_img, y=pdf.get_y() - 1, w=ancho_firma_mm, h=alto_firma_mm)
-                 pdf.rect(margen_izquierdo_firma_img - 2, pdf.get_y() - 3, ancho_firma_mm + 4, alto_firma_mm + 4)
-                 pdf.ln(alto_firma_mm + 5)
-
+                pdf.image(tmp_sig.name, x=margen_izquierdo_firma_img, y=pdf.get_y() - 1, w=ancho_firma_mm, h=alto_firma_mm)
+                pdf.rect(margen_izquierdo_firma_img - 2, pdf.get_y() - 3, ancho_firma_mm + 4, alto_firma_mm + 4)
+                pdf.ln(alto_firma_mm + 5)
             os.unlink(tmp_sig.name)
         
     return pdf.output(dest='S').encode('latin1')
@@ -230,6 +201,7 @@ with st.container():
             chofer = st.text_input("Chofer (Nombre y Apellido)", key="chofer_input")
             dni = st.text_input("DNI del chofer", key="dni_input")
             empresa = st.text_input("Empresa", key="empresa_input")
+            guardia = st.text_input("Nombre del guardia que realizó el control", key="guardia_input")  # <-- NUEVO
         with col2:
             sector = st.text_input("Sector (ej: Km 170, La Majadita, etc.)", key="sector_input")
             zona = st.number_input("Zona de velocidad permitida (km/h)", min_value=0, max_value=200, key="zona_input")
@@ -251,7 +223,7 @@ with st.container():
 
         enviar = st.form_submit_button("Generar PDF")
 
-# ---- Generar PDF con indicador visual ----
+# ---- Generar PDF ----
 if enviar:
     datos_formulario = {
         "hora": hora,
@@ -262,10 +234,11 @@ if enviar:
         "zona": zona,
         "exceso": exceso,
         "patente": patente,
-        "observaciones": observaciones
+        "observaciones": observaciones,
+        "guardia": guardia
     }
 
-    es_valido, mensaje = validar_formulario(hora, chofer, dni, empresa, sector, patente, zona, exceso)
+    es_valido, mensaje = validar_formulario(hora, chofer, dni, empresa, sector, patente, zona, exceso, guardia)
 
     if not es_valido:
         st.warning(mensaje)
@@ -280,19 +253,14 @@ if enviar:
         with st.spinner("Generando PDF, por favor espere..."):
             try:
                 pdf_bytes = generar_pdf_formato_nuevo(datos_formulario, firma, fotos_validas)
-                
-                # Nombre de archivo más descriptivo
                 fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 nombre_pdf = f"Reporte_Exceso_Vicuña_{datos_formulario['patente']}_{fecha_actual}.pdf"
-
                 st.download_button(
                     label="Descargar Reporte PDF",
                     data=pdf_bytes,
                     file_name=nombre_pdf,
                     mime="application/pdf"
                 )
-                
                 st.success("Reporte generado correctamente. ¡Haga clic en el botón de descarga!")
             except Exception as e:
                 st.error(f"Hubo un error al generar el PDF: {e}")
-                
